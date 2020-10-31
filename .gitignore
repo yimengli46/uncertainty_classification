@@ -1,0 +1,11 @@
+RetinaNet_Fishyscapes_Static_Results/
+RetinaNet_LostAndFound_Static_Results/
+RetinaNet_LostAndFound_Static_Results_new/
+RetinaNet_add_background_LostAndFound_Static_Results/
+__pycache__/
+experiment_2_LostAndFound/
+generated_images/
+merge_det_sseg/
+object_embedding_tsne_Cityscapes_and_LostAndFound_one_point/
+results/
+trained_model/
