@@ -14,14 +14,17 @@ from scipy.stats import entropy
 from scipy.special import softmax
 
 style = 'duq'
-dataset = 'roadAnomaly' #'lostAndFound', 'cityscapes', 'fishyscapes'
+dataset = 'lostAndFound' #'lostAndFound', 'cityscapes', 'fishyscapes'
 rep_style = 'both' #'both', 'ObjDet', 'SSeg' 
-saved_folder = 'visualization/obj_sseg_{}/{}/{}'.format(style, rep_style, dataset)
-trained_model_dir = 'trained_model/{}/{}'.format(style, rep_style)
+base_folder = 'visualization/lvis'
+saved_folder = '{}/obj_sseg_{}/{}/{}'.format(base_folder, style, rep_style, dataset)
+trained_model_dir = 'trained_model/lvis/{}/{}'.format(style, rep_style)
 
 # check if folder exists
-if not os.path.exists('visualization/obj_sseg_duq/{}'.format(rep_style)): 
-    os.mkdir('visualization/obj_sseg_duq/{}'.format(rep_style))
+if not os.path.exists('{}/obj_sseg_{}'.format(base_folder, style)):
+	os.mkdir('{}/obj_sseg_{}'.format(base_folder, style))
+if not os.path.exists('{}/obj_sseg_{}/{}'.format(base_folder, style, rep_style)): 
+    os.mkdir('{}/obj_sseg_{}/{}'.format(base_folder, style, rep_style))
 if not os.path.exists(saved_folder): 
     os.mkdir(saved_folder)
 

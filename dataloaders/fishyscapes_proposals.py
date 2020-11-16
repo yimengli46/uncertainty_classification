@@ -32,8 +32,8 @@ class FishyscapesProposalsDataset(data.Dataset):
 		print("Found {} images".format(len(self.data_json_file)))
 
 		# proposal, mask feature and sseg feature folder
-		self.proposal_folder = '/scratch/yli44/detectron2/my_projects/Bayesian_MaskRCNN/generated_proposals/fishyscapes_static'
-		self.mask_ft_folder  = '/scratch/yli44/detectron2/my_projects/Bayesian_MaskRCNN/proposal_mask_features/fishyscapes_static'
+		self.proposal_folder = '/scratch/yli44/detectron2/my_projects/Bayesian_MaskRCNN/generated_proposals_lvis/fishyscapes_static'
+		self.mask_ft_folder  = '/scratch/yli44/detectron2/my_projects/Bayesian_MaskRCNN/proposal_mask_features_lvis/fishyscapes_static'
 		self.sseg_ft_folder  = '/projects/kosecka/yimeng/Datasets/Fishyscapes_Static/deeplab_ft_8_classes'
 
 	def __len__(self):

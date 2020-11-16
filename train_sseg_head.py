@@ -9,7 +9,7 @@ from metrics import Evaluator
 
 BATCH_SIZE = 32
 rep_style = 'both' #'both', 'ObjDet', 'SSeg'
-saved_folder = 'trained_model/regular/{}'.format(rep_style)
+saved_folder = 'trained_model/lvis/regular/{}'.format(rep_style)
 
 print('saved_folder = {}'.format(saved_folder))
 
