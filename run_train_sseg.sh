@@ -20,7 +20,7 @@
 #SBATCH --mail-user=yli44@gmu.edu     # Put your GMU email address here
 
 ## Specify how much memory your job needs. (2G is the default)
-#SBATCH --mem=30G        # Total memory needed per task (units: K,M,G,T)
+#SBATCH --mem=20G        # Total memory needed per task (units: K,M,G,T)
 
 #SBATCH --gres=gpu:1
 

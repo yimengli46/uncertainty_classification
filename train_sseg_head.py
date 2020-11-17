@@ -7,7 +7,7 @@ from sseg_model import SSegHead
 from dataloaders.cityscapes_proposals import CityscapesProposalsDataset
 from metrics import Evaluator
 
-BATCH_SIZE = 3
+BATCH_SIZE = 8
 rep_style = 'both' # it's always both in the whole setup
 style = 'regular'
 saved_folder = 'trained_model/whole/{}'.format(style)
