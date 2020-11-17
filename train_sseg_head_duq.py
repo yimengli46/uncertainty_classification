@@ -8,9 +8,11 @@ from dataloaders.cityscapes_proposals import CityscapesProposalsDataset
 from metrics import Evaluator
 from loss import BinaryCrossEntropyLoss
 
-BATCH_SIZE = 8
+BATCH_SIZE = 6
 rep_style = 'both' #'both', 'ObjDet', 'SSeg'
-saved_folder = 'trained_model/duq/{}'.format(rep_style)
+style = 'duq'
+saved_folder = 'trained_model/whole/{}'.format(style)
+
 duq_l_gradient_penalty = 0.0
 
 print('saved_folder = {}'.format(saved_folder))
@@ -21,9 +23,9 @@ else:
     input_dim = 256
 
 dataset_folder = '/projects/kosecka/yimeng/Datasets/Cityscapes'
-ds_train = CityscapesProposalsDataset(dataset_folder, 'train', batch_size=BATCH_SIZE, rep_style=rep_style)
+ds_train = CityscapesProposalsDataset(dataset_folder, 'train', batch_size=BATCH_SIZE, rep_style=rep_style, crop_size=192)
 num_classes = ds_train.NUM_CLASSES
-ds_val = CityscapesProposalsDataset(dataset_folder, 'val', batch_size=BATCH_SIZE, rep_style=rep_style)
+ds_val = CityscapesProposalsDataset(dataset_folder, 'val', batch_size=BATCH_SIZE, rep_style=rep_style, crop_size=192)
 
 # # Classification
 device = torch.device('cuda')

@@ -9,17 +9,19 @@ import torch.utils.data as data
 import torch
 import torch.nn.functional as F
 from torchvision.ops import roi_align
+import random
 
 device = torch.device('cuda')
 
 class CityscapesProposalsDataset(data.Dataset):
-	def __init__(self, dataset_dir, split='train', batch_size=3, rep_style='both'):
+	def __init__(self, dataset_dir, split='train', batch_size=3, rep_style='both', crop_size=384):
 
 		self.dataset_dir = dataset_dir
 		self.split = split
 		self.mode = split
 		self.batch_size = batch_size
 		self.rep_style = rep_style
+		self.crop_size = crop_size
 
 		self.img_list = np.load('{}/{}_img_list.npy'.format(self.dataset_dir, self.mode), allow_pickle=True).tolist()
 
@@ -49,80 +51,61 @@ class CityscapesProposalsDataset(data.Dataset):
 		rgb_img = np.array(Image.open(img_path).convert('RGB'))
 		sseg_label = np.array(Image.open(lbl_path), dtype=np.uint8)
 		sseg_label = self.encode_segmap(sseg_label) # 1024 x 2048
+		H, W = sseg_label.shape
 		#print('sseg_label.shape = {}'.format(sseg_label.shape))
 		
 		# read proposals
 		proposals = np.load('{}/{}_proposal.npy'.format(self.proposal_folder, i), allow_pickle=True)
 		# read mask features
-		mask_feature = np.load('{}/{}_proposal_mask_features.npy'.format(self.mask_ft_folder, i), allow_pickle=True)
+		mask_feature = np.load('{}/{}_proposal_mask_features.npy'.format(self.mask_ft_folder, i), allow_pickle=True) # 100 x 256 x 14 x 14
 		#print('mask_feature.shape = {}'.format(mask_feature.shape))
+		
 		# read sseg features
 		sseg_feature = np.load('{}/{}_deeplab_ft.npy'.format(self.sseg_ft_folder, i), allow_pickle=True) # 256 x 128 x 256
-		_, H, W = sseg_feature.shape
 		#print('sseg_feature.shape = {}'.format(sseg_feature.shape))
 
+		#===================================== create whole image sseg feature ============================
 		sseg_feature = torch.tensor(sseg_feature).unsqueeze(0).to(device) # 1 x 256 x 128 x 256
+		mask_feature = torch.tensor(mask_feature).to(device) # 100 x 256 x 14 x 14
+		obj_feature  = torch.zeros((1, 256, H, W)).to(device) # 1 x 256 x 1024 x 2048
+		#print('sseg_feature.shape = {}'.format(sseg_feature.shape))
+		#assert 1==2
 
-		index = np.random.choice(100, self.batch_size, replace=False)
-		#index = np.array([0,1,2])
-		proposals = proposals[index] # B x 4
-		mask_feature = torch.tensor(mask_feature[index]).to(device) # B x 256 x 14 x 14
-
-		#print('proposals.shape = {}'.format(proposals.shape))
-		#print('mask_feature.shape = {}'.format(mask_feature.shape))
-
-		#batch_sseg_feature = torch.zeros((self.batch_size, 256, 14, 14))
-		batch_sseg_label = torch.zeros((self.batch_size, 28, 28))
-		batch_prop_boxes = torch.zeros((self.batch_size, 4)) 
-
-		for j in range(self.batch_size):
+		for j in [_ for _ in range(100)][::-1]: # there are 100 proposals
+			#print('j = {}'.format(j))
 			x1, y1, x2, y2 = proposals[j]
 			prop_x1 = int(max(round(x1), 0))
 			prop_y1 = int(max(round(y1), 0))
 			prop_x2 = int(min(round(x2), 2048-1))
 			prop_y2 = int(min(round(y2), 1024-1))
+			prop_w  = prop_x2 - prop_x1
+			prop_h  = prop_y2 - prop_y1
 
-			img_patch = rgb_img[prop_y1:prop_y2, prop_x1:prop_x2]
-			sseg_label_patch = sseg_label[prop_y1:prop_y2, prop_x1:prop_x2]
+			prop_feature = F.interpolate(mask_feature[j].unsqueeze(0), size=(prop_h, prop_w), mode='bilinear', align_corners=False)
+			obj_feature[0, :, prop_y1:prop_y2, prop_x1:prop_x2] = prop_feature[0]
 
-			batch_prop_boxes[j, 0] = prop_x1
-			batch_prop_boxes[j, 1] = prop_y1
-			batch_prop_boxes[j, 2] = prop_x2
-			batch_prop_boxes[j, 3] = prop_y2
-			
-			'''
-			# visualize for test
-			fig, ax = plt.subplots(nrows=1, ncols=2, figsize=(10,5))
-			ax[0].imshow(img_patch)
-			ax[0].get_xaxis().set_visible(False)
-			ax[0].get_yaxis().set_visible(False)
-			ax[0].set_title("rgb image")
-			ax[1].imshow(sseg_label_patch, vmin=0.0, vmax=8.0)
-			ax[1].get_xaxis().set_visible(False)
-			ax[1].get_yaxis().set_visible(False)
-			ax[1].set_title("sseg label")
-			plt.show()
-			'''
+		#=================================== reduce the resolution by half ==================================
+		H = int(H/2)
+		W = int(W/2)
+		sseg_label = torch.tensor(cv2.resize(sseg_label, (W, H), interpolation=cv2.INTER_NEAREST)) # 512 x 1024
+		obj_feature = F.interpolate(obj_feature, size=(H, W), mode='bilinear', align_corners=False).squeeze(0) # 256 x 512 x 1024
+		sseg_feature = F.interpolate(sseg_feature, size=(H, W), mode='bilinear', align_corners=False).squeeze(0) # 256 x 512 x 1024
+		whole_feature = torch.cat((obj_feature, sseg_feature), dim=0) # 512 x 512 x 1024
+		#print('sseg_label.shape = {}'.format(sseg_label.shape))
+		#print('whole_feature.shape = {}'.format(whole_feature.shape))
 
-			# rescale sseg label to 28x28
-			sseg_label_patch = cv2.resize(sseg_label_patch, (28, 28), interpolation=cv2.INTER_NEAREST) # 28 x 28
-			#print('sseg_label_patch.shape = {}'.format(sseg_label_patch.shape))
-			batch_sseg_label[j] = torch.tensor(sseg_label_patch)
-
-		batch_prop_boxes = batch_prop_boxes.to(device)
-		batch_sseg_feature = roi_align(sseg_feature, [batch_prop_boxes], output_size=(14, 14), spatial_scale=1/8.0)
-		#print('batch_sseg_feature.shape = {}'.format(batch_sseg_feature.shape))
-
-		if self.rep_style == 'both':
-			patch_feature = torch.cat((mask_feature, batch_sseg_feature), dim=1) # B x 512 x 14 x 14
-		elif self.rep_style == 'ObjDet':
-			patch_feature = mask_feature
-		elif self.rep_style == 'SSeg':
-			patch_feature = batch_sseg_feature 
-		#print('patch_feature.shape = {}'.format(patch_feature.shape))
-
-		return patch_feature, batch_sseg_label
-		#assert 1==2
+		# random crop crop_size
+		batch_sseg_label = torch.zeros((self.batch_size, self.crop_size, self.crop_size))
+		batch_whole_feature = torch.zeros((self.batch_size, 512, self.crop_size, self.crop_size)).to(device)
+		for j in range(self.batch_size):
+			x1 = random.randint(0, W - self.crop_size)
+			y1 = random.randint(0, H - self.crop_size)
+			x2 = x1 + self.crop_size
+			y2 = y1 + self.crop_size
+			batch_sseg_label[j] = sseg_label[y1:y2, x1:x2]
+			batch_whole_feature[j] = whole_feature[:, y1:y2, x1:x2]
+		
+		return batch_whole_feature, batch_sseg_label
 
 	def encode_segmap(self, mask):
 		#merge ambiguous classes

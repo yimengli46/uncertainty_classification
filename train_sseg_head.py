@@ -7,9 +7,10 @@ from sseg_model import SSegHead
 from dataloaders.cityscapes_proposals import CityscapesProposalsDataset
 from metrics import Evaluator
 
-BATCH_SIZE = 32
-rep_style = 'both' #'both', 'ObjDet', 'SSeg'
-saved_folder = 'trained_model/regular/{}'.format(rep_style)
+BATCH_SIZE = 3
+rep_style = 'both' # it's always both in the whole setup
+style = 'regular'
+saved_folder = 'trained_model/whole/{}'.format(style)
 
 print('saved_folder = {}'.format(saved_folder))
 
