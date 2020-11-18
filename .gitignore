@@ -9,3 +9,5 @@ merge_det_sseg/
 object_embedding_tsne_Cityscapes_and_LostAndFound_one_point/
 results/
 trained_model/
+dataloaders/
+processed_proposals/

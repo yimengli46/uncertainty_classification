@@ -89,3 +89,35 @@ def compute_iou(y_pred, y_true, num_classes):
 	IoU = intersection / (union+0.00001)
 	#print(IoU)
 	return np.mean(IoU_no_zero), IoU, idx_not_zero
+
+
+void_classes = [0, 1, 2, 3, 4, 5, 10, 14, 15, 16, -1]
+valid_classes = [7, 11, 17, 21, 23, 24, 26, 31]
+stuff_class_names = ['road', 'building', 'pole', 'vegetation', 'sky', 'person', 'car', 'train']
+class_map = dict(zip(valid_classes, range(len(valid_classes))))
+
+def encode_segmap(mask, ignore_index=255):
+    #merge ambiguous classes
+    mask[mask == 6] = 7 # ground -> road
+    mask[mask == 8] = 7 # sidewalk -> road
+    mask[mask == 9] = 7 # parking -> road
+    mask[mask == 22] = 21 # terrain -> vegetation
+    mask[mask == 25] = 24 # rider -> person
+    mask[mask == 32] = 24 # motorcycle -> person
+    mask[mask == 33] = 24 # bicycle -> person
+    mask[mask == 27] = 26 # truck -> car
+    mask[mask == 28] = 26 # bus -> car
+    mask[mask == 29] = 26 # caravan -> car
+    mask[mask == 30] = 26 # trailer -> car
+    mask[mask == 12] = 11 # wall -> building
+    mask[mask == 13] = 11 # fence -> building
+    mask[mask == 19] = 17 # traffic light -> pole
+    mask[mask == 20] = 17 # traffic sign -> pole
+    mask[mask == 18] = 17 # pole group -> pole
+
+    # Put all void classes to zero
+    for _voidc in void_classes:
+        mask[mask == _voidc] = ignore_index
+    for _validc in valid_classes:
+        mask[mask == _validc] = class_map[_validc]
+    return mask
