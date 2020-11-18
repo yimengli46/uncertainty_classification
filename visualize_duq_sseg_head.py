@@ -14,14 +14,18 @@ from scipy.stats import entropy
 from scipy.special import softmax
 
 style = 'duq'
-dataset = 'roadAnomaly' #'lostAndFound', 'cityscapes', 'fishyscapes'
-rep_style = 'both' #'both', 'ObjDet', 'SSeg' 
-saved_folder = 'visualization/obj_sseg_{}/{}/{}'.format(style, rep_style, dataset)
-trained_model_dir = 'trained_model/{}/{}'.format(style, rep_style)
+dataset = 'lostAndFound' #'lostAndFound', 'cityscapes', 'fishyscapes'
+rep_style = 'SSeg' #'both', 'ObjDet', 'SSeg' 
+save_option = 'npy' #'image', 'npy'
+base_folder = 'visualization/cityscapes'
+saved_folder = '{}/obj_sseg_{}/{}/{}'.format(base_folder, style, rep_style, dataset)
+trained_model_dir = 'trained_model/cityscapes/{}/{}'.format(style, rep_style)
 
 # check if folder exists
-if not os.path.exists('visualization/obj_sseg_duq/{}'.format(rep_style)): 
-    os.mkdir('visualization/obj_sseg_duq/{}'.format(rep_style))
+if not os.path.exists('{}/obj_sseg_{}'.format(base_folder, style)):
+	os.mkdir('{}/obj_sseg_{}'.format(base_folder, style))
+if not os.path.exists('{}/obj_sseg_{}/{}'.format(base_folder, style, rep_style)): 
+    os.mkdir('{}/obj_sseg_{}/{}'.format(base_folder, style, rep_style))
 if not os.path.exists(saved_folder): 
     os.mkdir(saved_folder)
 
@@ -91,28 +95,34 @@ with torch.no_grad():
 			color_sseg_pred = apply_color_map(sseg_pred)
 			#assert 1==2
 
-			fig, ax = plt.subplots(nrows=2, ncols=2, figsize=(18,10))
-			ax[0][0].imshow(img_proposal)
-			ax[0][0].get_xaxis().set_visible(False)
-			ax[0][0].get_yaxis().set_visible(False)
-			ax[0][0].set_title("rgb proposal")
-			ax[0][1].imshow(color_sseg_label_proposal)
-			ax[0][1].get_xaxis().set_visible(False)
-			ax[0][1].get_yaxis().set_visible(False)
-			ax[0][1].set_title("sseg_label_proposal")
-			ax[1][0].imshow(color_sseg_pred)
-			ax[1][0].get_xaxis().set_visible(False)
-			ax[1][0].get_yaxis().set_visible(False)
-			ax[1][0].set_title("sseg pred")
-			ax[1][1].imshow(uncertainty, vmin=0.0, vmax=1.0)
-			ax[1][1].get_xaxis().set_visible(False)
-			ax[1][1].get_yaxis().set_visible(False)
-			ax[1][1].set_title("uncertainty")
+			if save_option == 'both' or save_option == 'image':
+				fig, ax = plt.subplots(nrows=2, ncols=2, figsize=(18,10))
+				ax[0][0].imshow(img_proposal)
+				ax[0][0].get_xaxis().set_visible(False)
+				ax[0][0].get_yaxis().set_visible(False)
+				ax[0][0].set_title("rgb proposal")
+				ax[0][1].imshow(color_sseg_label_proposal)
+				ax[0][1].get_xaxis().set_visible(False)
+				ax[0][1].get_yaxis().set_visible(False)
+				ax[0][1].set_title("sseg_label_proposal")
+				ax[1][0].imshow(color_sseg_pred)
+				ax[1][0].get_xaxis().set_visible(False)
+				ax[1][0].get_yaxis().set_visible(False)
+				ax[1][0].set_title("sseg pred")
+				ax[1][1].imshow(uncertainty, vmin=0.0, vmax=1.0)
+				ax[1][1].get_xaxis().set_visible(False)
+				ax[1][1].get_yaxis().set_visible(False)
+				ax[1][1].set_title("uncertainty")
 
-			fig.tight_layout()
-			fig.savefig('{}/img_{}_proposal_{}.jpg'.format(saved_folder, i, j))
-			plt.close()
-		
+				fig.tight_layout()
+				fig.savefig('{}/img_{}_proposal_{}.jpg'.format(saved_folder, i, j))
+				plt.close()
 
-		#assert 1==2
+			if save_option == 'both' or save_option == 'npy':
+				result = {}
+				result['sseg'] = sseg_pred
+				result['uncertainty'] = uncertainty
+				np.save('{}/img_{}_proposal_{}.npy'.format(saved_folder, i, j), result)
+
+			#assert 1==2
 
