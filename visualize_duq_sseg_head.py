@@ -14,14 +14,16 @@ from scipy.stats import entropy
 from scipy.special import softmax
 
 style = 'duq'
-dataset = 'roadAnomaly' #'lostAndFound', 'cityscapes', 'fishyscapes'
+dataset = 'roadAnomaly' #'lostAndFound', 'cityscapes', 'fishyscapes', 'roadAnomaly'
 rep_style = 'both' #'both', 'ObjDet', 'SSeg' 
-saved_folder = 'visualization/obj_sseg_{}/{}/{}'.format(style, rep_style, dataset)
-trained_model_dir = 'trained_model/{}/{}'.format(style, rep_style)
+save_option = 'both' #'image', 'npy', 'both'
+base_folder = 'visualization/whole'
+saved_folder = '{}/obj_sseg_{}/{}'.format(base_folder, style, dataset)
+trained_model_dir = 'trained_model/whole/{}'.format(style)
 
 # check if folder exists
-if not os.path.exists('visualization/obj_sseg_duq/{}'.format(rep_style)): 
-    os.mkdir('visualization/obj_sseg_duq/{}'.format(rep_style))
+if not os.path.exists('{}/obj_sseg_{}'.format(base_folder, style)):
+	os.mkdir('{}/obj_sseg_{}'.format(base_folder, style))
 if not os.path.exists(saved_folder): 
     os.mkdir(saved_folder)
 
@@ -50,56 +52,54 @@ classifier = DuqHead(num_classes, input_dim).to(device)
 classifier.load_state_dict(torch.load('{}/{}_classifier_0.0.pth'.format(trained_model_dir, style)))
 #assert 1==2
 
+if dataset == 'cityscapes':
+	num_vis = 50
+elif dataset == 'lostAndFound':
+	num_vis = len(ds_val)
+elif dataset == 'fishyscapes':
+	num_vis = len(ds_val)
+elif dataset == 'roadAnomaly':
+	num_vis = len(ds_val)
+
 with torch.no_grad():
-	for i in range(len(ds_val)):
-		if dataset == 'cityscapes':
-			num_proposals = 10
-		elif dataset == 'lostAndFound':
-			num_proposals = ds_val.get_num_proposal(i)
-		elif dataset == 'fishyscapes':
-			num_proposals = ds_val.get_num_proposal(i)
-		elif dataset == 'roadAnomaly':
-			num_proposals = 20
+	for i in range(num_vis):
 		
-		for j in range(num_proposals):
-			print('i = {}, j = {}'.format(i, j))
-			patch_feature, _, img_proposal, sseg_label_proposal = ds_val.get_proposal(i, j)
+		print('i = {}'.format(i))
+		whole_feature, rgb_img, sseg_label = ds_val.get_whole_img(i)
 
-			patch_feature = patch_feature.to(device)
-			logits = classifier(patch_feature)
+		whole_feature = whole_feature.to(device)
+		logits = classifier(whole_feature)
 
-			H, W = sseg_label_proposal.shape
+		sseg_pred = torch.argmax(logits, dim=1)
 
-			logits = F.interpolate(logits, size=(H, W), mode='bilinear', align_corners=False)
-			sseg_pred = torch.argmax(logits, dim=1)
+		logits = logits.cpu().numpy()[0]
+		sseg_pred = sseg_pred.cpu().numpy()[0]
 
-			logits = logits.cpu().numpy()[0]
-			sseg_pred = sseg_pred.cpu().numpy()[0]
+		uncertainty = 1.0 - np.amax(logits, axis=0)
 
-			uncertainty = 1.0 - np.amax(logits, axis=0)
+		# ignore uncertainty on the background pixels
+		uncertainty[sseg_pred == 0] = 0 # road
+		uncertainty[sseg_pred == 1] = 0 # building
+		uncertainty[sseg_pred == 3] = 0 # vegetation
+		uncertainty[sseg_pred == 4] = 0 # sky
 
-			# ignore uncertainty on the background pixels
-			uncertainty[sseg_pred == 0] = 0 # road
-			uncertainty[sseg_pred == 1] = 0 # building
-			uncertainty[sseg_pred == 3] = 0 # vegetation
-			uncertainty[sseg_pred == 4] = 0 # sky
+		if dataset == 'cityscapes':
+			color_sseg_label = apply_color_map(sseg_label)
+		else:
+			color_sseg_label = sseg_label
+		color_sseg_pred = apply_color_map(sseg_pred)
+		#assert 1==2
 
-			if dataset == 'cityscapes':
-				color_sseg_label_proposal = apply_color_map(sseg_label_proposal)
-			else:
-				color_sseg_label_proposal = sseg_label_proposal
-			color_sseg_pred = apply_color_map(sseg_pred)
-			#assert 1==2
-
+		if save_option == 'both' or save_option == 'image':
 			fig, ax = plt.subplots(nrows=2, ncols=2, figsize=(18,10))
-			ax[0][0].imshow(img_proposal)
+			ax[0][0].imshow(rgb_img)
 			ax[0][0].get_xaxis().set_visible(False)
 			ax[0][0].get_yaxis().set_visible(False)
-			ax[0][0].set_title("rgb proposal")
-			ax[0][1].imshow(color_sseg_label_proposal)
+			ax[0][0].set_title("rgb image")
+			ax[0][1].imshow(color_sseg_label)
 			ax[0][1].get_xaxis().set_visible(False)
 			ax[0][1].get_yaxis().set_visible(False)
-			ax[0][1].set_title("sseg_label_proposal")
+			ax[0][1].set_title("sseg label")
 			ax[1][0].imshow(color_sseg_pred)
 			ax[1][0].get_xaxis().set_visible(False)
 			ax[1][0].get_yaxis().set_visible(False)
@@ -110,9 +110,14 @@ with torch.no_grad():
 			ax[1][1].set_title("uncertainty")
 
 			fig.tight_layout()
-			fig.savefig('{}/img_{}_proposal_{}.jpg'.format(saved_folder, i, j))
+			fig.savefig('{}/img_{}.jpg'.format(saved_folder, i))
 			plt.close()
-		
 
+		if save_option == 'both' or save_option == 'npy':
+			result = {}
+			result['sseg'] = sseg_pred
+			result['uncertainty'] = uncertainty
+			np.save('{}/img_{}.npy'.format(saved_folder, i), result)
+		
 		#assert 1==2
 
