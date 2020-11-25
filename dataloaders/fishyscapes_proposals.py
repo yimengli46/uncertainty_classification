@@ -67,7 +67,7 @@ class FishyscapesProposalsDataset(data.Dataset):
 
 	def get_num_proposal(self, i):
 		v = self.data_json_file[str(i)]
-		return len(v['regions'])
+		return len(v['regions']) + 20
 
 	def get_proposal(self, i, j=0):
 		img_path = '{}/{}.png'.format(self.dataset_dir, i)
@@ -79,8 +79,12 @@ class FishyscapesProposalsDataset(data.Dataset):
 		
 		# read proposals
 		proposals = np.load('{}/{}_proposal.npy'.format(self.proposal_folder, i), allow_pickle=True)
+		regular_proposals = np.load('{}/{}_regular_proposal.npy'.format(self.proposal_folder, i), allow_pickle=True)
+		proposals = np.concatenate((proposals, regular_proposals), axis=0)
 		# read mask features
 		mask_feature = np.load('{}/{}_proposal_mask_features.npy'.format(self.mask_ft_folder, i), allow_pickle=True)
+		regular_mask_feature = np.load('{}/{}_regular_proposal_mask_features.npy'.format(self.mask_ft_folder, i), allow_pickle=True)
+		mask_feature = np.concatenate((mask_feature, regular_mask_feature), axis=0)
 		# read sseg features
 		sseg_feature = np.load('{}/{}_deeplab_ft.npy'.format(self.sseg_ft_folder, i), allow_pickle=True) # 256 x 128 x 256
 		#print('sseg_feature.shape = {}'.format(sseg_feature.shape))
