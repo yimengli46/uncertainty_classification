@@ -14,7 +14,7 @@ from scipy.stats import entropy
 from scipy.special import softmax
 
 style = 'duq'
-dataset = 'lostAndFound' #'lostAndFound', 'cityscapes', 'fishyscapes'
+dataset = 'fishyscapes' #'lostAndFound', 'cityscapes', 'fishyscapes', 'roadAnomaly'
 rep_style = 'SSeg' #'both', 'ObjDet', 'SSeg' 
 save_option = 'npy' #'image', 'npy'
 base_folder = 'visualization/cityscapes'

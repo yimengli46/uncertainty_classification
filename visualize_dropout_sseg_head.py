@@ -6,14 +6,16 @@ import matplotlib.pyplot as plt
 from sseg_model import DropoutHead
 from dataloaders.cityscapes_proposals import CityscapesProposalsDataset
 from dataloaders.lostAndFound_proposals import LostAndFoundProposalsDataset
+from dataloaders.fishyscapes_proposals import FishyscapesProposalsDataset
+from dataloaders.roadAnomaly_proposals import RoadAnomalyProposalsDataset
 import torch.nn.functional as F
 from utils import apply_color_map
 from scipy.stats import entropy
 from scipy.special import softmax
 
 style = 'dropout'
-dataset = 'lostAndFound' #'lostAndFound', 'cityscapes', 'fishyscapes'
-rep_style = 'both' #'both', 'ObjDet', 'SSeg' 
+dataset = 'lostAndFound' #'lostAndFound', 'cityscapes', 'fishyscapes', 'roadAnomaly'
+rep_style = 'SSeg' #'both', 'ObjDet', 'SSeg' 
 save_option = 'npy' #'image', 'npy'
 base_folder = 'visualization/cityscapes'
 saved_folder = '{}/obj_sseg_{}/{}/{}'.format(base_folder, style, rep_style, dataset)
@@ -58,6 +60,10 @@ with torch.no_grad():
 			num_proposals = 10
 		elif dataset == 'lostAndFound':
 			num_proposals = ds_val.get_num_proposal(i)
+		elif dataset == 'fishyscapes':
+			num_proposals = ds_val.get_num_proposal(i)
+		elif dataset == 'roadAnomaly':
+			num_proposals = 20
 
 		for j in range(num_proposals):
 			print('i = {}, j = {}'.format(i, j))
