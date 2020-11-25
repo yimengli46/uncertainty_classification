@@ -8,8 +8,9 @@ from dataloaders.cityscapes_proposals import CityscapesProposalsDataset
 from metrics import Evaluator
 
 BATCH_SIZE = 32
-rep_style = 'both' #'both', 'ObjDet', 'SSeg'
-saved_folder = 'trained_model/dropout/{}'.format(rep_style)
+rep_style = 'SSeg' #'both', 'ObjDet', 'SSeg'
+style = 'dropout'
+saved_folder = 'trained_model/regular_cityscapes/{}/{}'.format(style, rep_style)
 
 print('saved_folder = {}'.format(saved_folder))
 

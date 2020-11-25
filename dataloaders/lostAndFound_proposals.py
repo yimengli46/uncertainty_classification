@@ -32,8 +32,8 @@ class LostAndFoundProposalsDataset(data.Dataset):
 		print("Found {} images".format(len(self.data_json_file)))
 
 		# proposal, mask feature and sseg feature folder
-		self.proposal_folder = '/scratch/yli44/detectron2/my_projects/Bayesian_MaskRCNN/generated_proposals/lostAndFound'
-		self.mask_ft_folder  = '/scratch/yli44/detectron2/my_projects/Bayesian_MaskRCNN/proposal_mask_features/lostAndFound'
+		self.proposal_folder = '/scratch/yli44/detectron2/my_projects/Bayesian_MaskRCNN/generated_proposals_cityscapes/lostAndFound'
+		self.mask_ft_folder  = '/scratch/yli44/detectron2/my_projects/Bayesian_MaskRCNN/proposal_mask_features_cityscapes/lostAndFound'
 		self.sseg_ft_folder  = '/projects/kosecka/yimeng/Datasets/Lost_and_Found/deeplab_ft_8_classes'
 
 	def __len__(self):
