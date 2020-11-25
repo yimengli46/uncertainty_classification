@@ -17,9 +17,9 @@ style = 'duq'
 dataset = 'fishyscapes' #'lostAndFound', 'cityscapes', 'fishyscapes', 'roadAnomaly'
 rep_style = 'SSeg' #'both', 'ObjDet', 'SSeg' 
 save_option = 'npy' #'image', 'npy'
-base_folder = 'visualization/cityscapes'
+base_folder = 'visualization/regular_cityscapes'
 saved_folder = '{}/obj_sseg_{}/{}/{}'.format(base_folder, style, rep_style, dataset)
-trained_model_dir = 'trained_model/cityscapes/{}/{}'.format(style, rep_style)
+trained_model_dir = 'trained_model/regular_cityscapes/{}/{}'.format(style, rep_style)
 
 # check if folder exists
 if not os.path.exists('{}/obj_sseg_{}'.format(base_folder, style)):
