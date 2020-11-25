@@ -1,5 +1,5 @@
 import numpy as np
-from sklearn.metrics import confusion_matrix
+from sklearn.metrics import confusion_matrix, roc_curve
 
 def find_IoU(box1, box2):
 	x11, y11, x12, y12 = box1
@@ -121,3 +121,22 @@ def encode_segmap(mask, ignore_index=255):
     for _validc in valid_classes:
         mask[mask == _validc] = class_map[_validc]
     return mask
+
+# compute fpr at 95% tpr
+# y is the ground truth, pred is the prediction
+def compute_fpr(y, pred):
+	y = y.ravel()
+	pred = pred.ravel()
+	fpr, tpr, thresh = roc_curve(y, pred)
+	for i in range(len(tpr)):
+		if tpr[i] >= 0.95:
+			#print('i = {}, len(tpr)= {}'.format(i, len(tpr)))
+			break
+	#print('tpr = {}'.format(tpr))
+	#print('fpr = {}'.format(fpr))
+	#print('thresh = {}'.format(thresh))
+	print('tpr[i] = {}'.format(tpr[i]))
+	assert i < len(tpr)
+	# as long as the thresh drops, tpr will finally reach 1.0
+	return fpr[i]
+
