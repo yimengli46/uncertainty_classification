@@ -45,6 +45,7 @@ class CityscapesProposalsDataset(data.Dataset):
 	def __getitem__(self, i):
 		img_path = '{}/{}'.format(self.dataset_dir, self.img_list[i]['rgb_path'])
 		lbl_path = '{}/{}'.format(self.dataset_dir, self.img_list[i]['semSeg_path'])
+		#print('img_path = {}'.format(img_path))
 
 		rgb_img = np.array(Image.open(img_path).convert('RGB'))
 		sseg_label = np.array(Image.open(lbl_path), dtype=np.uint8)
@@ -77,10 +78,26 @@ class CityscapesProposalsDataset(data.Dataset):
 
 		for j in range(self.batch_size):
 			x1, y1, x2, y2 = proposals[j]
+
+			# in case the proposal is very small
+			x1, y1, x2, y2 = round(x1), round(y1), round(x2), round(y2)
+			if x2 - x1 < 2:
+				x2 = x1 + 2
+			if y2 - y1 < 2:
+				y2 = y1 + 2
+
 			prop_x1 = int(max(round(x1), 0))
 			prop_y1 = int(max(round(y1), 0))
-			prop_x2 = int(min(round(x2), 2048-1))
-			prop_y2 = int(min(round(y2), 1024-1))
+			prop_x2 = int(min(round(x2), 2048))
+			prop_y2 = int(min(round(y2), 1024))
+
+			# in case the proposal is outside
+			if prop_x2 == 2048:
+				prop_x1 = min(prop_x1, prop_x2 - 2)
+			if prop_y2 == 1024:
+				prop_y1 = min(prop_y1, prop_y2 - 2)
+
+			#print('prop_x1 = {}, prop_y1 = {}, prop_x2 = {}, prop_y2 = {}'.format(prop_x1, prop_y1, prop_x2, prop_y2))
 
 			img_patch = rgb_img[prop_y1:prop_y2, prop_x1:prop_x2]
 			sseg_label_patch = sseg_label[prop_y1:prop_y2, prop_x1:prop_x2]
@@ -157,7 +174,7 @@ class CityscapesProposalsDataset(data.Dataset):
 		rgb_img = np.array(Image.open(img_path).convert('RGB'))
 		sseg_label = np.array(Image.open(lbl_path), dtype=np.uint8)
 		sseg_label = self.encode_segmap(sseg_label) # 1024 x 2048
-		#print('sseg_label.shape = {}'.format(sseg_label.shape))
+		print('sseg_label.shape = {}'.format(sseg_label.shape))
 		
 		# read proposals
 		proposals = np.load('{}/{}_proposal.npy'.format(self.proposal_folder, i), allow_pickle=True)
@@ -224,7 +241,7 @@ class CityscapesProposalsDataset(data.Dataset):
 		return patch_feature, batch_sseg_label, img_proposal, sseg_label_proposal
 
 '''
-cityscapes_train = CityscapesProposalsDataset('/projects/kosecka/yimeng/Datasets/Cityscapes', 'train')
-a = cityscapes_train[1]
+cityscapes_train = CityscapesProposalsDataset('/projects/kosecka/yimeng/Datasets/Cityscapes', 'train', batch_size=32, rep_style='both')
+a = cityscapes_train[2097]
 #b = cityscapes_train.get_proposal(0, 2)
 '''
