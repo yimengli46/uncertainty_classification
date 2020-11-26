@@ -14,10 +14,12 @@ from scipy.stats import entropy
 from scipy.special import softmax
 
 style = 'duq'
-dataset = 'roadAnomaly' #'lostAndFound', 'cityscapes', 'fishyscapes', 'roadAnomaly'
+dataset = 'fishyscapes' #'lostAndFound', 'cityscapes', 'fishyscapes', 'roadAnomaly'
 rep_style = 'both' #'both', 'ObjDet', 'SSeg' 
 save_option = 'both' #'image', 'npy', 'both'
 base_folder = 'visualization/whole'
+ignore_background_uncertainty = False
+
 saved_folder = '{}/obj_sseg_{}/{}'.format(base_folder, style, dataset)
 trained_model_dir = 'trained_model/whole/{}'.format(style)
 
@@ -77,11 +79,12 @@ with torch.no_grad():
 
 		uncertainty = 1.0 - np.amax(logits, axis=0)
 
-		# ignore uncertainty on the background pixels
-		uncertainty[sseg_pred == 0] = 0 # road
-		uncertainty[sseg_pred == 1] = 0 # building
-		uncertainty[sseg_pred == 3] = 0 # vegetation
-		uncertainty[sseg_pred == 4] = 0 # sky
+		if ignore_background_uncertainty:
+			# ignore uncertainty on the background pixels
+			uncertainty[sseg_pred == 0] = 0 # road
+			uncertainty[sseg_pred == 1] = 0 # building
+			uncertainty[sseg_pred == 3] = 0 # vegetation
+			uncertainty[sseg_pred == 4] = 0 # sky
 
 		if dataset == 'cityscapes':
 			color_sseg_label = apply_color_map(sseg_label)
