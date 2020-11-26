@@ -17,7 +17,7 @@ style = 'duq'
 dataset = 'fishyscapes' #'lostAndFound', 'cityscapes', 'fishyscapes', 'roadAnomaly'
 rep_style = 'SSeg' #'both', 'ObjDet', 'SSeg' 
 save_option = 'both' #'image', 'npy'
-ignore_background_uncertainty = False
+ignore_background_uncertainty = True
 
 for dataset in ['lostAndFound', 'roadAnomaly', 'fishyscapes']:
 	for rep_style in ['both', 'ObjDet', 'SSeg']:
