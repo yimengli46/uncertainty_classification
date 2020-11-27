@@ -124,12 +124,12 @@ def encode_segmap(mask, ignore_index=255):
 
 # compute fpr at 95% tpr
 # y is the ground truth, pred is the prediction
-def compute_fpr(y, pred):
+def compute_fpr(y, pred, tpr_thresh=0.5):
 	y = y.ravel()
 	pred = pred.ravel()
 	fpr, tpr, thresh = roc_curve(y, pred)
 	for i in range(len(tpr)):
-		if tpr[i] >= 0.95:
+		if tpr[i] >= tpr_thresh:
 			#print('i = {}, len(tpr)= {}'.format(i, len(tpr)))
 			break
 	#print('tpr = {}'.format(tpr))
