@@ -7,6 +7,7 @@ import cv2
 
 style = 'duq' # 'duq', 'dropout'
 dataset = 'fishyscapes' #'lostAndFound', 'cityscapes', 'fishyscapes', 'roadAnomaly'
+ignore_inlier_uncertainty = True # use Mask-RCNN object detections or not
 
 for style in ['duq', 'dropout']:
 	for dataset in ['lostAndFound', 'roadAnomaly', 'fishyscapes']:
@@ -16,6 +17,7 @@ for style in ['duq', 'dropout']:
 
 			base_folder = '/home/reza/ARGO_scratch/uncertainty_classification/visualization/whole'
 			result_folder = '{}/obj_sseg_{}/{}'.format(base_folder, style, dataset) # where sseg npy file is saved
+			det_folder = '/home/reza/ARGO_scratch/detectron2/my_projects/Bayesian_MaskRCNN/detections/{}'.format(dataset)
 
 			if dataset == 'cityscapes':
 				dataset_folder = '/home/reza/ARGO_datasets/Cityscapes'
@@ -48,6 +50,17 @@ for style in ['duq', 'dropout']:
 				result_uncertainty = result['uncertainty']
 				result_uncertainty = cv2.resize(result_uncertainty, (W, H))
 
+				if ignore_inlier_uncertainty:
+					dets = np.load('{}/{}.npy'.format(det_folder, img_id), allow_pickle=True).item()
+					#inlier_mask = dets['masks']
+					#inlier_mask = np.bitwise_or.reduce(inlier_mask,axis=0)
+					boxes = dets['boxes']
+					for box_id in range(boxes.shape[0]):
+						x1, y1, x2, y2 = boxes[box_id]
+						x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
+						result_uncertainty[y1:y2, x1:x2] = 0.0
+				#assert 1==2
+
 				result_uncertainty = result_uncertainty.ravel()
 				sseg_label = sseg_label.ravel()
 
@@ -62,7 +75,7 @@ for style in ['duq', 'dropout']:
 					auroc_score = roc_auc_score(sseg_label, result_uncertainty)
 
 					# compute fpr at 95% tpr
-					fpr_score = compute_fpr(sseg_label, result_uncertainty)
+					fpr_score = compute_fpr(sseg_label, result_uncertainty, tpr_thresh)
 
 					#compute AP
 					ap = average_precision_score(sseg_label, result_uncertainty)
