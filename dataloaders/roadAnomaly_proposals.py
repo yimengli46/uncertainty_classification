@@ -91,10 +91,24 @@ class RoadAnomalyProposalsDataset(data.Dataset):
 		batch_prop_boxes = torch.zeros((1, 4))
 		
 		x1, y1, x2, y2 = proposals[0]
+
+		# in case the proposal is very small
+		x1, y1, x2, y2 = round(x1), round(y1), round(x2), round(y2)
+		if x2 - x1 < 2:
+			x2 = x1 + 2
+		if y2 - y1 < 2:
+			y2 = y1 + 2
+
 		prop_x1 = int(max(round(x1), 0))
 		prop_y1 = int(max(round(y1), 0))
-		prop_x2 = int(min(round(x2), 1280-1))
-		prop_y2 = int(min(round(y2), 720-1))
+		prop_x2 = int(min(round(x2), 1280))
+		prop_y2 = int(min(round(y2), 720))
+
+		# in case the proposal is outside
+		if prop_x2 == 2048:
+			prop_x1 = min(prop_x1, prop_x2 - 2)
+		if prop_y2 == 1024:
+			prop_y1 = min(prop_y1, prop_y2 - 2)
 
 		img_proposal = rgb_img[prop_y1:prop_y2, prop_x1:prop_x2]
 		sseg_label_proposal = sseg_label[prop_y1:prop_y2, prop_x1:prop_x2]
