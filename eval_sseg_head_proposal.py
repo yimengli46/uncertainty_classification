@@ -7,10 +7,10 @@ from utils import compute_fpr
 style = 'duq' # 'duq', 'dropout'
 dataset = 'fishyscapes' #'lostAndFound', 'cityscapes', 'fishyscapes', 'roadAnomaly'
 rep_style = 'both' #'both', 'ObjDet', 'SSeg' 
-add_regular_props = True # add mask-rcnn proposals to lost&found and fishyscapes or not
+add_regular_props = False # add mask-rcnn proposals to lost&found and fishyscapes or not
 
 for style in ['duq', 'dropout']:
-	for dataset in ['lostAndFound', 'fishyscapes']:
+	for dataset in ['lostAndFound', 'roadAnomaly', 'fishyscapes']:
 		for rep_style in ['both', 'ObjDet', 'SSeg']:
 
 			print('style = {}, dataset = {}, rep_style = {}, add_regular = {}'.format(style, dataset, rep_style, add_regular_props))
@@ -32,7 +32,6 @@ for style in ['duq', 'dropout']:
 
 			auroc_score_list = []
 			ap_list = []
-			#fpr_list = []
 			for img_id in range(num_images):
 				#print('img_id = {}'.format(img_id))
 				# read in proposal file
@@ -99,18 +98,13 @@ for style in ['duq', 'dropout']:
 					# compute the roc-auc score
 					auroc_score = roc_auc_score(img_sseg_label, img_result_uncertainty)
 
-					# compute fpr at 95% tpr
-					#fpr_score = compute_fpr(img_sseg_label, img_result_uncertainty)
-
 					#compute AP
 					ap = average_precision_score(img_sseg_label, img_result_uncertainty)
 
 					auroc_score_list.append(auroc_score)
 					ap_list.append(ap)
-					fpr_list.append(fpr_score)
 
 			
 			print('===>mean auroc_score is {:.3f}'.format(np.array(auroc_score_list).mean()))
 			print('===>mean ap is {:.3f}'.format(np.array(ap_list).mean()))
-			#print('===>mean fpr_list is {:.3f}'.format(np.array(fpr_list).mean()))
 			print('--------------------------------------------------------------------------')

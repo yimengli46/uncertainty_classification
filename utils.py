@@ -135,7 +135,7 @@ def compute_fpr(y, pred):
 	#print('tpr = {}'.format(tpr))
 	#print('fpr = {}'.format(fpr))
 	#print('thresh = {}'.format(thresh))
-	print('tpr[i] = {}'.format(tpr[i]))
+	#print('tpr[i] = {}'.format(tpr[i]))
 	assert i < len(tpr)
 	# as long as the thresh drops, tpr will finally reach 1.0
 	return fpr[i]
