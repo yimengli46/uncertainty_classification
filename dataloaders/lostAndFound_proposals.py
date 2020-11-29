@@ -95,10 +95,10 @@ class LostAndFoundProposalsDataset(data.Dataset):
 		batch_prop_boxes = torch.zeros((1, 4))
 
 		x1, y1, x2, y2 = proposals[0]
-		prop_x1 = int(max(round(x1), 0))
-		prop_y1 = int(max(round(y1), 0))
-		prop_x2 = int(min(round(x2), 2048-1))
-		prop_y2 = int(min(round(y2), 1024-1))
+		prop_x1 = int(round(x1))
+		prop_y1 = int(round(y1))
+		prop_x2 = int(round(x2))
+		prop_y2 = int(round(y2))
 
 		img_proposal = rgb_img[prop_y1:prop_y2, prop_x1:prop_x2]
 		sseg_label_proposal = sseg_label[prop_y1:prop_y2, prop_x1:prop_x2]
@@ -115,7 +115,7 @@ class LostAndFoundProposalsDataset(data.Dataset):
 		batch_sseg_label[0] = torch.tensor(sseg_label_patch)
 
 		batch_prop_boxes = batch_prop_boxes.to(device)
-		batch_sseg_feature = roi_align(sseg_feature, [batch_prop_boxes], output_size=(14, 14), spatial_scale=1/8.0)
+		batch_sseg_feature = roi_align(sseg_feature, [batch_prop_boxes], output_size=(14, 14), spatial_scale=1/8.0, aligned=True)
 
 		if self.rep_style == 'both':
 			patch_feature = torch.cat((mask_feature, batch_sseg_feature), dim=1) # B x 512 x 14 x 14
