@@ -102,6 +102,8 @@ class CityscapesProposalsDataset(data.Dataset):
 		sseg_feature = torch.tensor(sseg_feature).unsqueeze(0).to(device) # 1 x 256 x 128 x 256
 
 		N, _ = img_proposals.shape
+		#if self.split == 'train':
+		#	N = 100 # training stage only pick from the top 100
 		index = np.random.choice(N, self.batch_size, replace=False)
 		img_proposals = img_proposals[index] # B x 4
 		feature_proposals = feature_proposals[index]
@@ -189,77 +191,87 @@ class CityscapesProposalsDataset(data.Dataset):
 		lbl_path = '{}/{}'.format(self.dataset_dir, self.img_list[i]['semSeg_path'])
 
 		rgb_img = np.array(Image.open(img_path).convert('RGB'))
+		H, W, _ = rgb_img.shape
 		sseg_label = np.array(Image.open(lbl_path), dtype=np.uint8)
 		sseg_label = self.encode_segmap(sseg_label) # 1024 x 2048
 		#print('sseg_label.shape = {}'.format(sseg_label.shape))
 		
 		# read proposals
-		proposals = np.load('{}/{}_proposal.npy'.format(self.proposal_folder, i), allow_pickle=True)
+		proposal_results = np.load('{}/{}_proposal.npy'.format(self.proposal_folder, i), allow_pickle=True).item()
+		img_proposals, feature_proposals = self.read_proposals(proposal_results, H, W)
+
 		# read mask features
-		mask_feature = np.load('{}/{}_proposal_mask_features.npy'.format(self.mask_ft_folder, i), allow_pickle=True)
+		whole_feature = np.load('{}/{}_whole_features.npy'.format(self.mask_ft_folder, i), allow_pickle=True).item()
+		# 'p6' is not used 
+		obj_feature = [torch.tensor(whole_feature[k]).to(device) for k in ['p2', 'p3', 'p4', 'p5']]
+
+		#print('obj_feature.shape = {}'.format(obj_feature.shape))
 		# read sseg features
 		sseg_feature = np.load('{}/{}_deeplab_ft.npy'.format(self.sseg_ft_folder, i), allow_pickle=True) # 256 x 128 x 256
-		_, H, W = sseg_feature.shape
 		#print('sseg_feature.shape = {}'.format(sseg_feature.shape))
-
 		sseg_feature = torch.tensor(sseg_feature).unsqueeze(0).to(device) # 1 x 256 x 128 x 256
-		
-		index = np.array([j])
-		proposals = proposals[index] # B x 4
-		mask_feature = torch.tensor(mask_feature[index]).to(device) # B x 256 x 14 x 14
 
-		batch_sseg_label = torch.zeros((1, 28, 28))
-		batch_prop_boxes = torch.zeros((1, 4))
-		
-		x1, y1, x2, y2 = proposals[0]
-		prop_x1 = int(max(round(x1), 0))
-		prop_y1 = int(max(round(y1), 0))
-		prop_x2 = int(min(round(x2), 2048-1))
-		prop_y2 = int(min(round(y2), 1024-1))
+		N, _ = img_proposals.shape
+		#index = np.random.choice(N, self.batch_size, replace=False)
+		img_proposals = np.expand_dims(img_proposals[j], axis=0) # B x 4
+		feature_proposals = np.expand_dims(feature_proposals[j], axis=0)
+		#print('img_proposals.shape = {}'.format(img_proposals.shape))
+		#print('feature_proposals.shape = {}'.format(feature_proposals.shape))
+
+		batch_sseg_label = torch.zeros((self.batch_size, 28, 28))
+		batch_prop_boxes = torch.tensor(img_proposals).to(device)
+		batch_feature_prop_boxes = torch.tensor(feature_proposals).to(device)
+
+		x1, y1, x2, y2 = img_proposals[0]
+
+		prop_x1 = int(round(x1))
+		prop_y1 = int(round(y1))
+		prop_x2 = int(round(x2))
+		prop_y2 = int(round(y2))
 
 		img_proposal = rgb_img[prop_y1:prop_y2, prop_x1:prop_x2]
 		sseg_label_proposal = sseg_label[prop_y1:prop_y2, prop_x1:prop_x2]
 
-		batch_prop_boxes[0, 0] = prop_x1
-		batch_prop_boxes[0, 1] = prop_y1
-		batch_prop_boxes[0, 2] = prop_x2
-		batch_prop_boxes[0, 3] = prop_y2
-		
 		'''
 		# visualize for test
 		fig, ax = plt.subplots(nrows=1, ncols=2, figsize=(10,5))
-		ax[0].imshow(img_proposal)
+		ax[0].imshow(img_patch)
 		ax[0].get_xaxis().set_visible(False)
 		ax[0].get_yaxis().set_visible(False)
-		ax[0].set_title("rgb proposal")
-		ax[1].imshow(sseg_label_proposal, vmin=0.0, vmax=8.0)
+		ax[0].set_title("rgb image")
+		ax[1].imshow(sseg_label_patch, vmin=0.0, vmax=8.0)
 		ax[1].get_xaxis().set_visible(False)
 		ax[1].get_yaxis().set_visible(False)
-		ax[1].set_title("sseg label proposal")
+		ax[1].set_title("sseg label")
 		plt.show()
 		'''
 
 		# rescale sseg label to 28x28
 		sseg_label_patch = cv2.resize(sseg_label_proposal, (28, 28), interpolation=cv2.INTER_NEAREST) # 28 x 28
-		sseg_label_patch = sseg_label_patch.astype('int')
-		#print('sseg_label_patch = {}'.format(sseg_label_patch))
+		#print('sseg_label_patch.shape = {}'.format(sseg_label_patch.shape))
 		batch_sseg_label[0] = torch.tensor(sseg_label_patch)
 
-		batch_prop_boxes = batch_prop_boxes.to(device)
-		batch_sseg_feature = roi_align(sseg_feature, [batch_prop_boxes], output_size=(14, 14), spatial_scale=1/8.0)
+		#print('batch_prop_boxes = {}'.format(batch_prop_boxes))
+		batch_sseg_feature = roi_align(sseg_feature, [batch_prop_boxes], output_size=(14, 14), spatial_scale=1/8.0, aligned=True)
+		batch_obj_feature  = self.pooler(obj_feature, [batch_feature_prop_boxes])
+		#print('batch_obj_feature.shape = {}'.format(batch_obj_feature.shape))
+		#print('batch_obj_feature = {}'.format(batch_obj_feature))
+		#print('batch_sseg_feature.shape = {}'.format(batch_sseg_feature.shape))
 
 		if self.rep_style == 'both':
-			patch_feature = torch.cat((mask_feature, batch_sseg_feature), dim=1) # B x 512 x 14 x 14
+			patch_feature = torch.cat((batch_obj_feature, batch_sseg_feature), dim=1) # B x 512 x 14 x 14
 		elif self.rep_style == 'ObjDet':
-			patch_feature = mask_feature
+			patch_feature = batch_obj_feature
 		elif self.rep_style == 'SSeg':
-			patch_feature = batch_sseg_feature
+			patch_feature = batch_sseg_feature 
+		#print('patch_feature.shape = {}'.format(patch_feature.shape))
 
 		return patch_feature, batch_sseg_label, img_proposal, sseg_label_proposal
+		#assert 1==2
 
 '''
 cityscapes_train = CityscapesProposalsDataset('/projects/kosecka/yimeng/Datasets/Cityscapes', 'train', batch_size=3)
-a = cityscapes_train[1]
+#a = cityscapes_train[1]
 #c = cityscapes_train[2]
-#b = cityscapes_train.get_proposal(0, 2)
+b = cityscapes_train.get_proposal(0, 2)
 '''

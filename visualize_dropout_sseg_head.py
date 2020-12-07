@@ -24,7 +24,7 @@ for dataset in ['lostAndFound', 'roadAnomaly', 'fishyscapes']:
 
 		print('style = {}, rep_style = {},  dataset = {}'.format(style, rep_style, dataset))
 
-		base_folder = 'visualization/cityscapes'
+		base_folder = 'visualization/all_props'
 		saved_folder = '{}/obj_sseg_{}/{}/{}'.format(base_folder, style, rep_style, dataset)
 		trained_model_dir = 'trained_model/cityscapes/{}/{}'.format(style, rep_style)
 		num_forward_pass = 10
