@@ -24,9 +24,9 @@ ignore_background_uncertainty = True
 
 print('style = {}, rep_style = {},  dataset = {}'.format(style, rep_style, dataset))
 
-base_folder = 'visualization/all_props'
+base_folder = 'visualization/cityscapes'
 saved_folder = '{}/obj_sseg_{}/{}/{}'.format(base_folder, style, rep_style, dataset)
-trained_model_dir = 'trained_model/all_props/{}/{}'.format(style, rep_style)
+trained_model_dir = 'trained_model/cityscapes/{}/{}'.format(style, rep_style)
 
 # check if folder exists
 if not os.path.exists('{}/obj_sseg_{}'.format(base_folder, style)):

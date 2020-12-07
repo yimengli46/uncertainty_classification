@@ -102,8 +102,8 @@ class CityscapesProposalsDataset(data.Dataset):
 		sseg_feature = torch.tensor(sseg_feature).unsqueeze(0).to(device) # 1 x 256 x 128 x 256
 
 		N, _ = img_proposals.shape
-		#if self.split == 'train':
-		#	N = 100 # training stage only pick from the top 100
+		if self.split == 'train':
+			N = 100 # training stage only pick from the top 100
 		index = np.random.choice(N, self.batch_size, replace=False)
 		img_proposals = img_proposals[index] # B x 4
 		feature_proposals = feature_proposals[index]

@@ -9,7 +9,7 @@ from metrics import Evaluator
 
 BATCH_SIZE = 64
 rep_style = 'both' #'both', 'ObjDet', 'SSeg'
-saved_folder = 'trained_model/all_props/dropout/{}'.format(rep_style)
+saved_folder = 'trained_model/cityscapes/dropout/{}'.format(rep_style)
 
 print('saved_folder = {}'.format(saved_folder))
 
