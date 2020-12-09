@@ -14,6 +14,7 @@ from scipy.stats import entropy
 from scipy.special import softmax
 
 style = 'duq'
+method = 'no_bn'
 dataset = 'cityscapes' #'lostAndFound', 'cityscapes', 'fishyscapes', 'roadAnomaly'
 rep_style = 'ObjDet' #'both', 'ObjDet', 'SSeg' 
 save_option = 'both' #'image', 'npy'
@@ -22,11 +23,11 @@ ignore_background_uncertainty = True
 for dataset in ['cityscapes', 'lostAndFound', 'roadAnomaly', 'fishyscapes']:
 	for rep_style in ['both', 'ObjDet', 'SSeg']:
 
-		print('style = {}, rep_style = {},  dataset = {}'.format(style, rep_style, dataset))
+		print('method = {}, style = {}, rep_style = {},  dataset = {}'.format(method, style, rep_style, dataset))
 
-		base_folder = 'visualization/all_props'
+		base_folder = 'visualization/{}'.format(method)
 		saved_folder = '{}/obj_sseg_{}/{}/{}'.format(base_folder, style, rep_style, dataset)
-		trained_model_dir = 'trained_model/all_props/{}/{}'.format(style, rep_style)
+		trained_model_dir = 'trained_model/{}/{}/{}'.format(method, style, rep_style)
 
 		# check if folder exists
 		if not os.path.exists('{}/obj_sseg_{}'.format(base_folder, style)):
@@ -59,7 +60,7 @@ for dataset in ['cityscapes', 'lostAndFound', 'roadAnomaly', 'fishyscapes']:
 
 		classifier = DuqHead(num_classes, input_dim).to(device)
 		classifier.load_state_dict(torch.load('{}/{}_classifier_0.0.pth'.format(trained_model_dir, style)))
-		#classifier.eval()
+		classifier.eval()
 
 		with torch.no_grad():
 			if dataset == 'cityscapes':
