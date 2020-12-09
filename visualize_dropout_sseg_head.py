@@ -19,14 +19,14 @@ rep_style = 'SSeg' #'both', 'ObjDet', 'SSeg'
 save_option = 'npy' #'image', 'npy'
 ignore_background_uncertainty = True
 
-for dataset in ['lostAndFound', 'roadAnomaly', 'fishyscapes']:
+for dataset in ['cityscapes', 'lostAndFound', 'roadAnomaly', 'fishyscapes']:
 	for rep_style in ['both', 'ObjDet', 'SSeg']:
 
 		print('style = {}, rep_style = {},  dataset = {}'.format(style, rep_style, dataset))
 
 		base_folder = 'visualization/all_props'
 		saved_folder = '{}/obj_sseg_{}/{}/{}'.format(base_folder, style, rep_style, dataset)
-		trained_model_dir = 'trained_model/cityscapes/{}/{}'.format(style, rep_style)
+		trained_model_dir = 'trained_model/all_props/{}/{}'.format(style, rep_style)
 		num_forward_pass = 10
 
 		# check if folder exists
@@ -60,9 +60,15 @@ for dataset in ['lostAndFound', 'roadAnomaly', 'fishyscapes']:
 
 		classifier = DropoutHead(num_classes, input_dim).to(device)
 		classifier.load_state_dict(torch.load('{}/{}_classifier.pth'.format(trained_model_dir, style)))
+		#classifier.eval()
 
 		with torch.no_grad():
-			for i in range(len(ds_val)):
+			if dataset == 'cityscapes':
+				num_imgs = 2
+			else:
+				num_imgs = len(ds_val)
+
+			for i in range(num_imgs):
 				if dataset == 'cityscapes':
 					num_proposals = 10
 				elif dataset == 'lostAndFound':

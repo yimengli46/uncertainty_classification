@@ -8,7 +8,7 @@ from dataloaders.cityscapes_proposals import CityscapesProposalsDataset
 from metrics import Evaluator
 
 BATCH_SIZE = 64
-rep_style = 'both' #'both', 'ObjDet', 'SSeg'
+rep_style = 'SSeg' #'both', 'ObjDet', 'SSeg'
 saved_folder = 'trained_model/all_props/regular/{}'.format(rep_style)
 
 print('saved_folder = {}'.format(saved_folder))

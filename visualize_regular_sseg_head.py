@@ -50,9 +50,7 @@ device = torch.device('cuda')
 
 classifier = SSegHead(num_classes, input_dim).to(device)
 classifier.load_state_dict(torch.load('{}/regular_classifier.pth'.format(trained_model_dir)))
-
-#print('aaaaaaaaaaaaaa')
-#ssert 1==2
+#classifier.eval()
 
 with torch.no_grad():
 	for i in range(len(ds_val)):
