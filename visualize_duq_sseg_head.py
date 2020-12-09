@@ -59,6 +59,7 @@ device = torch.device('cuda')
 
 classifier = DuqHead(num_classes, input_dim).to(device)
 classifier.load_state_dict(torch.load('{}/{}_classifier_0.0.pth'.format(trained_model_dir, style)))
+classifier.eval()
 #assert 1==2
 
 with torch.no_grad():

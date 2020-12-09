@@ -60,6 +60,7 @@ for dataset in ['lostAndFound', 'roadAnomaly', 'fishyscapes']:
 
 		classifier = DropoutHead(num_classes, input_dim).to(device)
 		classifier.load_state_dict(torch.load('{}/{}_classifier.pth'.format(trained_model_dir, style)))
+		classifier.eval()
 
 		with torch.no_grad():
 			for i in range(len(ds_val)):
