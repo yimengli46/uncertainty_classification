@@ -13,7 +13,7 @@ from scipy.special import softmax
 method = 'all_props'
 style = 'duq'
 dataset = 'cityscapes' #'lostAndFound', 'cityscapes', 'fishyscapes', 'roadAnomaly'
-split = 'val' 
+split = 'train' 
 rep_style = 'ObjDet' #'both', 'ObjDet', 'SSeg' 
 save_option = 'npy' #'image', 'npy'
 ignore_background_uncertainty = True
@@ -46,10 +46,11 @@ device = torch.device('cuda')
 
 classifier = DuqHead(num_classes, input_dim).to(device)
 classifier.load_state_dict(torch.load('{}/{}_classifier_0.0.pth'.format(trained_model_dir, style)))
-classifier.eval()
+#classifier.eval()
 
 with torch.no_grad():
-	for i in range(2):#len(ds_val)):
+	for i in range(len(ds_val)):
+		print('i = {}'.format(i))
 		_, _, _, _, num_proposals = ds_val.get_proposal(i, 0)
 
 		if save_option == 'image':
@@ -110,12 +111,15 @@ with torch.no_grad():
 				patch_feature, patch_label = ds_val.get_proposal_batches(i, start, finish)
 
 				patch_feature = patch_feature.to(device)
-				logits = classifier(patch_feature) # batch_size x 8 x 28 x 28
+				B = patch_feature.shape[0]
+				logits = torch.zeros((B, 8, 28, 28)).to(device)
+				for b in range(B):
+					logits[b] = classifier(patch_feature[b].unsqueeze(0))[0] # batch_size x 8 x 28 x 28
 
 				sseg_pred = torch.argmax(logits, dim=1)
 				sseg_pred = sseg_pred.cpu().numpy() # batch_size x 28 x 28
 				patch_label = patch_label.cpu().numpy() # batch_size x 28 x 28
-				print('patch_label.shape = {}'.format(patch_label.shape))
+				#print('patch_label.shape = {}'.format(patch_label.shape))
 
 				B, _, _ = sseg_pred.shape
 				for j in range(B):
