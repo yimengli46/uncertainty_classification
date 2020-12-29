@@ -80,8 +80,8 @@ class CityscapesClassificationDataset(data.Dataset):
 		return img_proposals, feature_proposals
 
 	def __getitem__(self, i):
-		img_path = '{}/{}'.format(self.dataset_dir, self.img_list[i]['rgb_path'])
-		lbl_path = '{}/{}'.format(self.dataset_dir, self.img_list[i]['semSeg_path'])
+		img_path = '{}/{}'.format(self.dataset_dir, self.img_list[i]['left_img'])
+		lbl_path = '{}/{}'.format(self.dataset_dir, self.img_list[i]['semSeg'])
 
 		# read segmentation result mask and label
 		mask_and_label = np.load('{}/img_{}_class_and_mask.npy'.format(self.mask_folder, i), allow_pickle=True).item()
@@ -171,14 +171,14 @@ class CityscapesClassificationDataset(data.Dataset):
 		return mask
 
 	def get_proposal(self, i, j=0):
-		img_path = '{}/{}'.format(self.dataset_dir, self.img_list[i]['rgb_path'])
-		lbl_path = '{}/{}'.format(self.dataset_dir, self.img_list[i]['semSeg_path'])
+		img_path = '{}/{}'.format(self.dataset_dir, self.img_list[i]['left_img'])
+		lbl_path = '{}/{}'.format(self.dataset_dir, self.img_list[i]['semSeg'])
+
+		# read segmentation result mask and label
+		mask_and_label = np.load('{}/img_{}_class_and_mask.npy'.format(self.mask_folder, i), allow_pickle=True).item()
 
 		rgb_img = np.array(Image.open(img_path).convert('RGB'))
 		H, W, _ = rgb_img.shape
-		sseg_label = np.array(Image.open(lbl_path), dtype=np.uint8)
-		sseg_label = self.encode_segmap(sseg_label) # 1024 x 2048
-		#print('sseg_label.shape = {}'.format(sseg_label.shape))
 		
 		# read proposals
 		proposal_results = np.load('{}/{}_proposal.npy'.format(self.proposal_folder, i), allow_pickle=True).item()
@@ -203,7 +203,9 @@ class CityscapesClassificationDataset(data.Dataset):
 		#print('img_proposals.shape = {}'.format(img_proposals.shape))
 		#print('feature_proposals.shape = {}'.format(feature_proposals.shape))
 
-		batch_sseg_label = torch.zeros((1, 28, 28))
+		sseg_mask = torch.tensor(mask_and_label['mask'][j]).unsqueeze(0)
+		class_label = int(mask_and_label['class'][j])
+
 		batch_prop_boxes = torch.tensor(img_proposals).to(device)
 		batch_feature_prop_boxes = torch.tensor(feature_proposals).to(device)
 
@@ -215,12 +217,6 @@ class CityscapesClassificationDataset(data.Dataset):
 		prop_y2 = int(round(y2))
 
 		img_proposal = rgb_img[prop_y1:prop_y2, prop_x1:prop_x2]
-		sseg_label_proposal = sseg_label[prop_y1:prop_y2, prop_x1:prop_x2]
-
-		# rescale sseg label to 28x28
-		sseg_label_patch = cv2.resize(sseg_label_proposal, (28, 28), interpolation=cv2.INTER_NEAREST) # 28 x 28
-		#print('sseg_label_patch.shape = {}'.format(sseg_label_patch.shape))
-		batch_sseg_label[0] = torch.tensor(sseg_label_patch)
 
 		#print('batch_prop_boxes = {}'.format(batch_prop_boxes))
 		batch_sseg_feature = roi_align(sseg_feature, [batch_prop_boxes], output_size=(14, 14), spatial_scale=1/8.0, aligned=True)
@@ -237,7 +233,7 @@ class CityscapesClassificationDataset(data.Dataset):
 			patch_feature = batch_sseg_feature 
 		#print('patch_feature.shape = {}'.format(patch_feature.shape))
 
-		return patch_feature, batch_sseg_label, img_proposal, sseg_label_proposal, N
+		return patch_feature, sseg_mask, img_proposal, class_label, N
 		#assert 1==2
 
 	def get_proposal_batches(self, i, start=0, finish=1):

@@ -49,3 +49,11 @@ def gen_mask_and_class_label(sseg_pred, patch_label, num_classes=8):
 	#print('class_dist = {}, max_class = {}'.format(class_dist, max_class))
 	return object_mask, gt_class_label, class_dist
 
+def gen_mask(sseg_pred, num_classes=8):
+	object_mask = np.zeros(sseg_pred.shape, dtype=np.bool)
+	object_mask = np.where(sseg_pred == 2, True, object_mask) # pole
+	object_mask = np.where(sseg_pred == 5, True, object_mask) # person
+	object_mask = np.where(sseg_pred == 6, True, object_mask) # car
+	object_mask = np.where(sseg_pred == 7, True, object_mask) # train
+
+	return object_mask
