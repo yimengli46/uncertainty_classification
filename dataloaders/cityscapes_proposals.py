@@ -35,16 +35,16 @@ class CityscapesProposalsDataset(data.Dataset):
 		print("Found {} {} images".format(len(self.img_list), self.split))
 
 		# proposal, mask feature and sseg feature folder
-		self.proposal_folder = '/scratch/yli44/detectron2/my_projects/Bayesian_MaskRCNN/generated_proposals_cityscapes/cityscapes_{}'.format(self.mode)
-		self.mask_ft_folder  = '/scratch/yli44/detectron2/my_projects/Bayesian_MaskRCNN/proposal_mask_features_cityscapes/cityscapes_{}'.format(self.mode)
+		self.proposal_folder = '/scratch/yli44/detectron2/my_projects/Bayesian_MaskRCNN/generated_proposals_regular_cityscapes/cityscapes_{}'.format(self.mode)
+		self.mask_ft_folder  = '/scratch/yli44/detectron2/my_projects/Bayesian_MaskRCNN/proposal_mask_features_regular_cityscapes/cityscapes_{}'.format(self.mode)
 		self.sseg_ft_folder  = '/projects/kosecka/yimeng/Datasets/Cityscapes/deeplab_ft_8_classes/{}'.format(self.mode)
 
 	def __len__(self):
 		return len(self.img_list)
 
 	def __getitem__(self, i):
-		img_path = '{}/{}'.format(self.dataset_dir, self.img_list[i]['rgb_path'])
-		lbl_path = '{}/{}'.format(self.dataset_dir, self.img_list[i]['semSeg_path'])
+		img_path = '{}/{}'.format(self.dataset_dir, self.img_list[i]['left_img'])
+		lbl_path = '{}/{}'.format(self.dataset_dir, self.img_list[i]['semSeg'])
 		#print('img_path = {}'.format(img_path))
 
 		rgb_img = np.array(Image.open(img_path).convert('RGB'))
