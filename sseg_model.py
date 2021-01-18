@@ -19,15 +19,15 @@ class SSegHead(nn.Module):
 		self.bn5 = nn.BatchNorm2d(256)
 		self.predictor = nn.Conv2d(256, num_classes, kernel_size=1, stride=1, padding=0)
 
-
 	def forward(self, x):
 		x = F.relu(self.bn1(self.conv1(x)))
 		x = F.relu(self.bn2(self.conv2(x)))
 		x = F.relu(self.bn3(self.conv3(x)))
 		x = F.relu(self.bn4(self.conv4(x)))
 		x = F.relu(self.bn5(self.deconv(x)))
-		x = self.predictor(x)
-		return x
+		y = self.predictor(x)
+		print('y.shape = {}'.format(y.shape))
+		return y, x
 
 class DropoutHead(nn.Module):
 	def __init__(self, num_classes=8, input_dim=512):
@@ -87,7 +87,6 @@ class DuqHead(nn.Module):
 		self.m = self.m *self.N
 		self.sigma = self.duq_length_scale
 
-
 	def rbf(self, z):
 		z = torch.einsum('ij,mnj->imn', z, self.W)
 		embeddings = self.m / self.N.unsqueeze(0)
@@ -110,7 +109,7 @@ class DuqHead(nn.Module):
 		y_pred = self.rbf(z)
 		y_pred = y_pred.reshape(B, H, W, self.num_classes).permute(0, 3, 1, 2)
 		
-		return y_pred
+		return y_pred, z
 
 	def update_embeddings(self, x, y_targets):
 		y_targets = y_targets.reshape(-1, 1).long().squeeze(1)

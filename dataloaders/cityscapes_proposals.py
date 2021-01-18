@@ -77,8 +77,8 @@ class CityscapesProposalsDataset(data.Dataset):
 		return img_proposals, feature_proposals
 
 	def __getitem__(self, i):
-		img_path = '{}/{}'.format(self.dataset_dir, self.img_list[i]['rgb_path'])
-		lbl_path = '{}/{}'.format(self.dataset_dir, self.img_list[i]['semSeg_path'])
+		img_path = '{}/{}'.format(self.dataset_dir, self.img_list[i]['left_img'])
+		lbl_path = '{}/{}'.format(self.dataset_dir, self.img_list[i]['semSeg'])
 
 		rgb_img = np.array(Image.open(img_path).convert('RGB'))
 		H, W, _ = rgb_img.shape
@@ -187,8 +187,8 @@ class CityscapesProposalsDataset(data.Dataset):
 		return mask
 
 	def get_proposal(self, i, j=0):
-		img_path = '{}/{}'.format(self.dataset_dir, self.img_list[i]['rgb_path'])
-		lbl_path = '{}/{}'.format(self.dataset_dir, self.img_list[i]['semSeg_path'])
+		img_path = '{}/{}'.format(self.dataset_dir, self.img_list[i]['left_img'])
+		lbl_path = '{}/{}'.format(self.dataset_dir, self.img_list[i]['semSeg'])
 
 		rgb_img = np.array(Image.open(img_path).convert('RGB'))
 		H, W, _ = rgb_img.shape

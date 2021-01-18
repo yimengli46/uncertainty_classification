@@ -3,7 +3,8 @@ import numpy as np
 import torch
 import torch.nn as nn
 import matplotlib.pyplot as plt
-from sseg_model import DuqHead
+#from sseg_model import DuqHead
+from sseg_model import SSegHead
 from dataloaders.cityscapes_proposals import CityscapesProposalsDataset
 from dataloaders.lostAndFound_proposals import LostAndFoundProposalsDataset
 from dataloaders.fishyscapes_proposals import FishyscapesProposalsDataset
@@ -12,11 +13,12 @@ import torch.nn.functional as F
 from utils import apply_color_map
 from scipy.stats import entropy
 from scipy.special import softmax
+import cv2
 
-style = 'duq'
-dataset = 'cityscapes' #'lostAndFound', 'cityscapes', 'fishyscapes', 'roadAnomaly'
-rep_style = 'both' #'both', 'ObjDet', 'SSeg' 
-save_option = 'both' #'image', 'npy'
+style = 'regular'
+dataset = 'lostAndFound' #'lostAndFound', 'cityscapes', 'fishyscapes', 'roadAnomaly'
+rep_style = 'SSeg' #'both', 'ObjDet', 'SSeg' 
+save_option = 'image' #'image', 'npy'
 ignore_background_uncertainty = True
 
 #for dataset in ['cityscapes', 'lostAndFound', 'roadAnomaly', 'fishyscapes']:
@@ -57,29 +59,37 @@ else:
 
 device = torch.device('cuda')
 
-classifier = DuqHead(num_classes, input_dim).to(device)
-classifier.load_state_dict(torch.load('{}/{}_classifier_0.0.pth'.format(trained_model_dir, style)))
-classifier.eval()
+#classifier = DuqHead(num_classes, input_dim).to(device)
+classifier = SSegHead(num_classes, input_dim).to(device)
+classifier.load_state_dict(torch.load('{}/{}_classifier.pth'.format(trained_model_dir, style)))
+flag_eval = False
+if flag_eval:
+	classifier.eval()
 #W = classifier.W.detach().cpu().numpy()
 #np.save('./duq_{}_W.npy'.format(rep_style), W)
 #assert 1==2
 
-i = 0
+i = 73
 j = 0
 with torch.no_grad():
-	print('i = {}, j = {}'.format(i, j))
+	#for i in range(100):
+	#print('i = {}, j = {}'.format(i, j))
 	patch_feature, batch_sseg_label, img_proposal, sseg_label_proposal = ds_val.get_proposal(i, j)
 
 	patch_feature = patch_feature.to(device)
 	logits, z = classifier(patch_feature)
 
-	z = z.reshape(1, 28, 28, 256).cpu().numpy()[0]
+	z = z.permute(0, 2, 3, 1).cpu().numpy()[0]
 	batch_sseg_label = batch_sseg_label.cpu().numpy()[0]
+	logit = logits.permute(0, 2, 3, 1).cpu().numpy()[0]
 
 	result = {}
 	result['ft'] = z
+	result['logit'] = logit
 	result['label'] = batch_sseg_label
-	np.save('./duq_{}_img_{}_proposal_{}_{}.npy'.format(rep_style, i, j, dataset), result)
+	result['predictor_weight'] = classifier.state_dict()['predictor.weight'].cpu().numpy()
+	result['predictor_bias'] = classifier.state_dict()['predictor.bias'].cpu().numpy()
+	np.save('{}/regular_img_{}_proposal_{}_eval_{}.npy'.format(saved_folder, i, j, flag_eval), result)
 	assert 1==2
 
 	H, W = sseg_label_proposal.shape
@@ -90,7 +100,8 @@ with torch.no_grad():
 	logits = logits.cpu().numpy()[0]
 	sseg_pred = sseg_pred.cpu().numpy()[0]
 
-	uncertainty = 1.0 - np.amax(logits, axis=0)
+	#uncertainty = 1.0 - np.amax(logits, axis=0)
+	uncertainty = entropy(softmax(logits, axis=0), axis=0, base=2)
 
 	if ignore_background_uncertainty:
 		# ignore uncertainty on the background pixels
@@ -126,7 +137,7 @@ with torch.no_grad():
 		ax[1][1].set_title("uncertainty")
 
 		fig.tight_layout()
-		fig.savefig('{}/img_{}_proposal_{}.jpg'.format(saved_folder, i, j))
+		fig.savefig('{}/img_{}_proposal_{}_eval_{}.jpg'.format(saved_folder, i, j, flag_eval))
 		plt.close()
 
 	if save_option == 'both' or save_option == 'npy':
@@ -135,5 +146,5 @@ with torch.no_grad():
 		result['uncertainty'] = uncertainty
 		np.save('{}/img_{}_proposal_{}.npy'.format(saved_folder, i, j), result)
 
-	#assert 1==2
+		#assert 1==2
 
