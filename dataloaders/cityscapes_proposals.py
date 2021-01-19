@@ -23,10 +23,10 @@ class CityscapesProposalsDataset(data.Dataset):
 
 		self.img_list = np.load('{}/{}_img_list.npy'.format(self.dataset_dir, self.mode), allow_pickle=True).tolist()
 
-		self.void_classes = [0, 1, 2, 3, 4, 5, 10, 14, 15, 16, 17, -1] # pole class id is 17
-		self.valid_classes = [7, 11, 21, 23, 24, 26, 31]
+		self.void_classes = [0, 1, 2, 3, 4, 5, 10, 14, 15, 16, 24, -1] # person, rider class id is 24
+		self.valid_classes = [7, 11, 17, 21, 23, 26, 31, 32]
 		self.class_names = ['unlabelled', 'road', 'building', \
-							'pole', 'vegetation', 'sky', 'person', 'car', 'train', ]
+							'pole', 'vegetation', 'sky', 'car', 'train', 'twowheel',]
 
 		self.ignore_index = 255
 		self.NUM_CLASSES = len(self.valid_classes)
@@ -35,8 +35,8 @@ class CityscapesProposalsDataset(data.Dataset):
 		print("Found {} {} images".format(len(self.img_list), self.split))
 
 		# proposal, mask feature and sseg feature folder
-		self.proposal_folder = '/scratch/yli44/detectron2/my_projects/Bayesian_MaskRCNN/generated_proposals_regular_cityscapes/cityscapes_{}'.format(self.mode)
-		self.mask_ft_folder  = '/scratch/yli44/detectron2/my_projects/Bayesian_MaskRCNN/proposal_mask_features_regular_cityscapes/cityscapes_{}'.format(self.mode)
+		self.proposal_folder = '/scratch/yli44/detectron2/my_projects/Bayesian_MaskRCNN/generated_proposals_cityscapes_ignore_person/cityscapes_{}'.format(self.mode)
+		self.mask_ft_folder  = '/scratch/yli44/detectron2/my_projects/Bayesian_MaskRCNN/proposal_mask_features_cityscapes_ignore_person/cityscapes_{}'.format(self.mode)
 		self.sseg_ft_folder  = '/projects/kosecka/yimeng/Datasets/Cityscapes/deeplab_ft_8_classes/{}'.format(self.mode)
 
 	def __len__(self):
@@ -148,8 +148,8 @@ class CityscapesProposalsDataset(data.Dataset):
 		mask[mask == 9] = 7 # parking -> road
 		mask[mask == 22] = 21 # terrain -> vegetation
 		mask[mask == 25] = 24 # rider -> person
-		mask[mask == 32] = 24 # motorcycle -> person
-		mask[mask == 33] = 24 # bicycle -> person
+		mask[mask == 32] = 32 # motorcycle -> twowheel
+		mask[mask == 33] = 32 # bicycle -> twowheel
 		mask[mask == 27] = 26 # truck -> car
 		mask[mask == 28] = 26 # bus -> car
 		mask[mask == 29] = 26 # caravan -> car

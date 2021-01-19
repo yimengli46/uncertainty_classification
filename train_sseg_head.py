@@ -10,7 +10,7 @@ from metrics import Evaluator
 BATCH_SIZE = 64
 rep_style = 'ObjDet' #'both', 'ObjDet', 'SSeg'
 style = 'regular'
-saved_folder = 'trained_model/regular_cityscapes_ignore_poles/{}/{}'.format(style, rep_style)
+saved_folder = 'trained_model/regular_cityscapes_ignore_person/{}/{}'.format(style, rep_style)
 
 print('saved_folder = {}'.format(saved_folder))
 

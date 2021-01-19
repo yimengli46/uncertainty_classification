@@ -8,10 +8,10 @@ from dataloaders.cityscapes_proposals import CityscapesProposalsDataset
 from metrics import Evaluator
 from loss import BinaryCrossEntropyLoss
 
-BATCH_SIZE = 64
+BATCH_SIZE = 32
 rep_style = 'ObjDet' #'both', 'ObjDet', 'SSeg'
 style = 'duq'
-saved_folder = 'trained_model/regular_cityscapes_ignore_poles/{}/{}'.format(style, rep_style)
+saved_folder = 'trained_model/regular_cityscapes_ignore_person/{}/{}'.format(style, rep_style)
 
 duq_l_gradient_penalty = 0.0
 

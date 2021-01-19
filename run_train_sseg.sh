@@ -30,6 +30,6 @@ module load cuda/10.1
 source /scratch/yli44/anomaly_env/bin/activate
 
 ## Run your program or script
-python train_sseg_head.py
+#python train_sseg_head.py
 #python train_sseg_head_dropout.py
-#python train_sseg_head_duq.py
+python train_sseg_head_duq.py
