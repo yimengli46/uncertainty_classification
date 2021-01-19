@@ -20,7 +20,7 @@
 #SBATCH --mail-user=yli44@gmu.edu     # Put your GMU email address here
 
 ## Specify how much memory your job needs. (2G is the default)
-#SBATCH --mem=10G        # Total memory needed per task (units: K,M,G,T)
+#SBATCH --mem=5G        # Total memory needed per task (units: K,M,G,T)
 
 #SBATCH --gres=gpu:1
 
@@ -30,6 +30,6 @@ module load cuda/10.1
 source /scratch/yli44/anomaly_env/bin/activate
 
 ## Run your program or script
-#python train_sseg_head.py
+python train_sseg_head.py
 #python train_sseg_head_dropout.py
-python train_sseg_head_duq.py
+#python train_sseg_head_duq.py

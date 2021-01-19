@@ -5,7 +5,7 @@ import torch.nn as nn
 import matplotlib.pyplot as plt
 from sseg_model import SSegHead
 from dataloaders.cityscapes_proposals import CityscapesProposalsDataset
-from dataloaders.lostAndFound_proposals import LostAndFoundProposalsDataset
+#from dataloaders.lostAndFound_proposals import LostAndFoundProposalsDataset
 import torch.nn.functional as F
 from utils import apply_color_map
 from scipy.stats import entropy
@@ -13,11 +13,11 @@ from scipy.special import softmax
 
 style = 'regular'
 dataset = 'lostAndFound' #'lostAndFound', 'cityscapes', 'fishyscapes'
-rep_style = 'both' #'both', 'ObjDet', 'SSeg' 
-save_option = 'npy' #'image', 'npy'
-base_folder = 'visualization/cityscapes'
+rep_style = 'ObjDet' #'both', 'ObjDet', 'SSeg' 
+save_option = 'image' #'image', 'npy'
+base_folder = 'visualization/regular_cityscapes_ignore_poles'
 saved_folder = '{}/obj_sseg_{}/{}/{}'.format(base_folder, style, rep_style, dataset)
-trained_model_dir = 'trained_model/cityscapes/{}/{}'.format(style, rep_style)
+trained_model_dir = 'trained_model/regular_cityscapes_ignore_poles/{}/{}'.format(style, rep_style)
 
 # check if folder exists
 if not os.path.exists('{}/obj_sseg_{}'.format(base_folder, style)):
@@ -30,6 +30,7 @@ if not os.path.exists(saved_folder):
 if dataset == 'cityscapes':
 	dataset_folder = '/projects/kosecka/yimeng/Datasets/Cityscapes'
 	ds_val = CityscapesProposalsDataset(dataset_folder, 'val', rep_style=rep_style)
+'''
 elif dataset == 'lostAndFound':
 	dataset_folder = '/projects/kosecka/yimeng/Datasets/Lost_and_Found'
 	ds_val = LostAndFoundProposalsDataset(dataset_folder, rep_style=rep_style)
@@ -39,6 +40,7 @@ elif dataset == 'fishyscapes':
 elif dataset == 'roadAnomaly':
 	dataset_folder = '/projects/kosecka/yimeng/Datasets/RoadAnomaly'
 	ds_val = RoadAnomalyProposalsDataset(dataset_folder, rep_style=rep_style)
+'''
 num_classes = ds_val.NUM_CLASSES
 
 if rep_style == 'both':

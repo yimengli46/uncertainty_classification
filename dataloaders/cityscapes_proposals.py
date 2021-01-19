@@ -23,8 +23,8 @@ class CityscapesProposalsDataset(data.Dataset):
 
 		self.img_list = np.load('{}/{}_img_list.npy'.format(self.dataset_dir, self.mode), allow_pickle=True).tolist()
 
-		self.void_classes = [0, 1, 2, 3, 4, 5, 10, 14, 15, 16, -1]
-		self.valid_classes = [7, 11, 17, 21, 23, 24, 26, 31]
+		self.void_classes = [0, 1, 2, 3, 4, 5, 10, 14, 15, 16, 17, -1] # pole class id is 17
+		self.valid_classes = [7, 11, 21, 23, 24, 26, 31]
 		self.class_names = ['unlabelled', 'road', 'building', \
 							'pole', 'vegetation', 'sky', 'person', 'car', 'train', ]
 

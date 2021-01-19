@@ -5,9 +5,6 @@ import torch.nn as nn
 import matplotlib.pyplot as plt
 from sseg_model import DuqHead
 from dataloaders.cityscapes_proposals import CityscapesProposalsDataset
-from dataloaders.lostAndFound_proposals import LostAndFoundProposalsDataset
-from dataloaders.fishyscapes_proposals import FishyscapesProposalsDataset
-from dataloaders.roadAnomaly_proposals import RoadAnomalyProposalsDataset
 import torch.nn.functional as F
 from utils import apply_color_map
 from scipy.stats import entropy
@@ -15,8 +12,8 @@ from scipy.special import softmax
 
 style = 'duq'
 dataset = 'lostAndFound' #'lostAndFound', 'cityscapes', 'fishyscapes', 'roadAnomaly'
-rep_style = 'both' #'both', 'ObjDet', 'SSeg' 
-save_option = 'both' #'image', 'npy'
+rep_style = 'ObjDet' #'both', 'ObjDet', 'SSeg' 
+save_option = 'image' #'image', 'npy'
 
 for rep_style in ['ObjDet', 'SSeg']:
 	for dataset in ['lostAndFound', 'roadAnomaly', 'fishyscapes']:
