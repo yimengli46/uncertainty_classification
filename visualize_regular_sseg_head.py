@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 import matplotlib.pyplot as plt
 from sseg_model import SSegHead
-from dataloaders.cityscapes_proposals import CityscapesProposalsDataset
+from dataloaders.ade20k_proposals import ADE20KProposalsDataset
 #from dataloaders.lostAndFound_proposals import LostAndFoundProposalsDataset
 import torch.nn.functional as F
 from utils import apply_color_map
@@ -12,12 +12,12 @@ from scipy.stats import entropy
 from scipy.special import softmax
 
 style = 'regular'
-dataset = 'lostAndFound' #'lostAndFound', 'cityscapes', 'fishyscapes'
+dataset = 'ade20k' #'lostAndFound', 'cityscapes', 'fishyscapes'
 rep_style = 'ObjDet' #'both', 'ObjDet', 'SSeg' 
 save_option = 'image' #'image', 'npy'
-base_folder = 'visualization/regular_cityscapes_ignore_poles'
+base_folder = 'visualization/ade20k'
 saved_folder = '{}/obj_sseg_{}/{}/{}'.format(base_folder, style, rep_style, dataset)
-trained_model_dir = 'trained_model/regular_cityscapes_ignore_poles/{}/{}'.format(style, rep_style)
+trained_model_dir = 'trained_model/ade20k/{}/{}'.format(style, rep_style)
 
 # check if folder exists
 if not os.path.exists('{}/obj_sseg_{}'.format(base_folder, style)):
@@ -27,20 +27,10 @@ if not os.path.exists('{}/obj_sseg_{}/{}'.format(base_folder, style, rep_style))
 if not os.path.exists(saved_folder): 
     os.mkdir(saved_folder)
 
-if dataset == 'cityscapes':
-	dataset_folder = '/projects/kosecka/yimeng/Datasets/Cityscapes'
-	ds_val = CityscapesProposalsDataset(dataset_folder, 'val', rep_style=rep_style)
-'''
-elif dataset == 'lostAndFound':
-	dataset_folder = '/projects/kosecka/yimeng/Datasets/Lost_and_Found'
-	ds_val = LostAndFoundProposalsDataset(dataset_folder, rep_style=rep_style)
-elif dataset == 'fishyscapes':
-	dataset_folder = '/projects/kosecka/yimeng/Datasets/Fishyscapes_Static'
-	ds_val = FishyscapesProposalsDataset(dataset_folder, rep_style=rep_style)
-elif dataset == 'roadAnomaly':
-	dataset_folder = '/projects/kosecka/yimeng/Datasets/RoadAnomaly'
-	ds_val = RoadAnomalyProposalsDataset(dataset_folder, rep_style=rep_style)
-'''
+if dataset == 'ade20k':
+	dataset_folder = '/projects/kosecka/yimeng/Datasets/ADE20K/Semantic_Segmentation'
+	ds_val = ADE20KProposalsDataset(dataset_folder, 'val', rep_style=rep_style)
+
 num_classes = ds_val.NUM_CLASSES
 
 if rep_style == 'both':
@@ -58,12 +48,12 @@ classifier.load_state_dict(torch.load('{}/regular_classifier.pth'.format(trained
 
 with torch.no_grad():
 	for i in range(len(ds_val)):
-		if dataset == 'cityscapes':
-			num_proposals = 2
+		if dataset == 'ade20k':
+			num_proposals = 15
 		elif dataset == 'lostAndFound':
 			num_proposals = ds_val.get_num_proposal(i)
 		
-		for j in range(num_proposals):
+		for j in range(5, 15):
 			print('i = {}, j = {}'.format(i, j))
 			patch_feature, _, img_proposal, sseg_label_proposal = ds_val.get_proposal(i, j)
 
@@ -80,12 +70,21 @@ with torch.no_grad():
 
 			uncertainty = entropy(softmax(logits, axis=0), axis=0, base=2)
 
+			'''
 			if dataset == 'cityscapes':
 				color_sseg_label_proposal = apply_color_map(sseg_label_proposal)
 			else:
 				color_sseg_label_proposal = sseg_label_proposal
 			color_sseg_pred = apply_color_map(sseg_pred)
 			#assert 1==2
+			'''
+
+			uncertainty[sseg_pred == 0] = 0 # road
+			uncertainty[sseg_pred == 1] = 0 # building
+			uncertainty[sseg_pred == 2] = 0 # vegetation
+			uncertainty[sseg_pred == 4] = 0 # sky
+			uncertainty[sseg_pred == 5] = 0
+			uncertainty[sseg_pred == 6] = 0
 
 			if save_option == 'both' or save_option == 'image':
 				fig, ax = plt.subplots(nrows=2, ncols=2, figsize=(18,10))
@@ -93,11 +92,11 @@ with torch.no_grad():
 				ax[0][0].get_xaxis().set_visible(False)
 				ax[0][0].get_yaxis().set_visible(False)
 				ax[0][0].set_title("rgb proposal")
-				ax[0][1].imshow(color_sseg_label_proposal)
+				ax[0][1].imshow(sseg_label_proposal, vmin=0, vmax=num_classes)
 				ax[0][1].get_xaxis().set_visible(False)
 				ax[0][1].get_yaxis().set_visible(False)
 				ax[0][1].set_title("sseg_label_proposal")
-				ax[1][0].imshow(color_sseg_pred)
+				ax[1][0].imshow(sseg_pred, vmin=0, vmax=num_classes)
 				ax[1][0].get_xaxis().set_visible(False)
 				ax[1][0].get_yaxis().set_visible(False)
 				ax[1][0].set_title("sseg pred")

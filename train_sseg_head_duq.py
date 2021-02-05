@@ -4,14 +4,14 @@ import torch
 import torch.nn as nn
 import matplotlib.pyplot as plt
 from sseg_model import DuqHead, calc_gradient_penalty
-from dataloaders.cityscapes_proposals import CityscapesProposalsDataset
+from dataloaders.ade20k_proposals import ADE20KProposalsDataset
 from metrics import Evaluator
 from loss import BinaryCrossEntropyLoss
 
-BATCH_SIZE = 32
+BATCH_SIZE = 24
 rep_style = 'ObjDet' #'both', 'ObjDet', 'SSeg'
 style = 'duq'
-saved_folder = 'trained_model/regular_cityscapes_ignore_person/{}/{}'.format(style, rep_style)
+saved_folder = 'trained_model/ade20k/{}/{}'.format(style, rep_style)
 
 duq_l_gradient_penalty = 0.0
 
@@ -22,10 +22,10 @@ if rep_style == 'both':
 else:
     input_dim = 256
 
-dataset_folder = '/projects/kosecka/yimeng/Datasets/Cityscapes'
-ds_train = CityscapesProposalsDataset(dataset_folder, 'train', batch_size=BATCH_SIZE, rep_style=rep_style)
+dataset_folder = '/projects/kosecka/yimeng/Datasets/ADE20K/Semantic_Segmentation'
+ds_train = ADE20KProposalsDataset(dataset_folder, 'train', batch_size=BATCH_SIZE, rep_style=rep_style)
 num_classes = ds_train.NUM_CLASSES
-ds_val = CityscapesProposalsDataset(dataset_folder, 'val', batch_size=BATCH_SIZE, rep_style=rep_style)
+ds_val = ADE20KProposalsDataset(dataset_folder, 'val', batch_size=BATCH_SIZE, rep_style=rep_style)
 
 # # Classification
 device = torch.device('cuda')
