@@ -15,7 +15,7 @@ for style in ['duq', 'dropout']:
 
 			print('style = {}, dataset = {}, rep_style = {}, add_regular = {}'.format(style, dataset, rep_style, add_regular_props))
 
-			base_folder = '/home/reza/ARGO_scratch/uncertainty_classification/visualization/cityscapes'
+			base_folder = '/home/reza/ARGO_scratch/uncertainty_classification/visualization/all_props'
 			result_folder = '{}/obj_sseg_{}/{}/{}'.format(base_folder, style, rep_style, dataset) # where sseg npy file is saved
 			proposal_folder = '/home/reza/ARGO_scratch/detectron2/my_projects/Bayesian_MaskRCNN/generated_proposals/{}'.format(dataset)
 			if dataset == 'cityscapes':
@@ -32,6 +32,7 @@ for style in ['duq', 'dropout']:
 
 			auroc_score_list = []
 			ap_list = []
+			fpr_list = []
 			for img_id in range(num_images):
 				#print('img_id = {}'.format(img_id))
 				# read in proposal file
@@ -55,13 +56,13 @@ for style in ['duq', 'dropout']:
 
 				for proposal_id in range(num_props):
 					x1, y1, x2, y2 = proposals[proposal_id]
-					prop_x1 = int(max(round(x1), 0))
-					prop_y1 = int(max(round(y1), 0))
-					prop_x2 = int(min(round(x2), 2048-1))
-					prop_y2 = int(min(round(y2), 1024-1))
+					prop_x1 = int(round(x1))
+					prop_y1 = int(round(y1))
+					prop_x2 = int(round(x2))
+					prop_y2 = int(round(y2))
 					if dataset == 'roadAnomaly':
-						prop_x2 = int(min(round(x2), 1280-1))
-						prop_y2 = int(min(round(y2), 720-1))
+						prop_x2 = int(round(x2))
+						prop_y2 = int(round(y2))
 
 					# road anomaly use detected proposals. These proposals have weired shape. So ignore them.
 					if dataset == 'roadAnomaly' or add_regular_props:
@@ -101,10 +102,15 @@ for style in ['duq', 'dropout']:
 					#compute AP
 					ap = average_precision_score(img_sseg_label, img_result_uncertainty)
 
+					# compute fpr at 50% tpr
+					fpr_score = compute_fpr(img_sseg_label, img_result_uncertainty, 0.5)
+
 					auroc_score_list.append(auroc_score)
 					ap_list.append(ap)
+					fpr_list.append(fpr_score)
 
 			
 			print('===>mean auroc_score is {:.3f}'.format(np.array(auroc_score_list).mean()))
 			print('===>mean ap is {:.3f}'.format(np.array(ap_list).mean()))
+			print('===>mean fpr is {:.3f}'.format(np.array(fpr_list).mean()))
 			print('--------------------------------------------------------------------------')

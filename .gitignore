@@ -11,3 +11,5 @@ results/
 trained_model/
 dataloaders/
 processed_proposals/
+visualize_MaskRCNN_proposals.py
+visualize_proposals/
