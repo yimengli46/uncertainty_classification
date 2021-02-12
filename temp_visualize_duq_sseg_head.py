@@ -18,7 +18,7 @@ import cv2
 style = 'duq'
 dataset = 'lostAndFound' #'lostAndFound', 'cityscapes', 'fishyscapes', 'roadAnomaly'
 rep_style = 'SSeg' #'both', 'ObjDet', 'SSeg' 
-save_option = 'image' #'image', 'npy'
+save_option = 'both' #'image', 'npy'
 ignore_background_uncertainty = False
 
 #for dataset in ['cityscapes', 'lostAndFound', 'roadAnomaly', 'fishyscapes']:

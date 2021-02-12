@@ -20,10 +20,9 @@ class LostAndFoundProposalsDataset(data.Dataset):
 
 		self.data_json_file = json.load(open('{}/{}_data_annotation.json'.format(self.dataset_dir, 'Lost_and_Found')))
 
-		self.void_classes = [0, 1, 2, 3, 4, 5, 10, 14, 15, 16, -1]
-		self.valid_classes = [7, 11, 17, 21, 23, 24, 26, 31]
-		self.class_names = ['unlabelled', 'road', 'building', \
-							'pole', 'vegetation', 'sky', 'person', 'car', 'train', ]
+		self.void_classes = [0, 1, 2, 3, 4, 5, 10, 14, 15, 16, 17, 24, 26, 31, -1]
+		self.valid_classes = [7, 11, 21, 23,]
+		self.class_names = ['unlabelled', 'road', 'building', 'vegetation', 'sky']
 
 		self.ignore_index = 255
 		self.NUM_CLASSES = len(self.valid_classes)
