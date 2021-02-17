@@ -18,7 +18,7 @@ import cv2
 style = 'duq'
 dataset = 'lostAndFound' #'lostAndFound', 'cityscapes', 'fishyscapes', 'roadAnomaly'
 rep_style = 'SSeg' #'both', 'ObjDet', 'SSeg' 
-save_option = 'image' #'image', 'npy'
+save_option = 'both' #'image', 'npy'
 ignore_background_uncertainty = False
 
 #for dataset in ['cityscapes', 'lostAndFound', 'roadAnomaly', 'fishyscapes']:
@@ -26,9 +26,9 @@ ignore_background_uncertainty = False
 
 print('style = {}, rep_style = {},  dataset = {}'.format(style, rep_style, dataset))
 
-base_folder = 'visualization/temp_all_props'
+base_folder = 'visualization/no_conv'
 saved_folder = '{}/obj_sseg_{}/{}/{}'.format(base_folder, style, rep_style, dataset)
-trained_model_dir = 'trained_model/all_props/{}/{}'.format(style, rep_style)
+trained_model_dir = 'trained_model/no_conv/{}/{}'.format(style, rep_style)
 
 # check if folder exists
 if not os.path.exists('{}/obj_sseg_{}'.format(base_folder, style)):
@@ -82,7 +82,7 @@ with torch.no_grad():
 			patch_feature, batch_sseg_label, img_proposal, sseg_label_proposal = ds_val.get_proposal(i, j)
 
 			patch_feature = patch_feature.to(device)
-			logits, z = classifier(patch_feature)
+			logits = classifier(patch_feature)
 
 			'''
 			z = z.permute(0, 2, 3, 1).cpu().numpy()[0]

@@ -64,15 +64,7 @@ class DuqHead(nn.Module):
 		super(DuqHead, self).__init__()
 		self.num_classes = num_classes
 
-		self.conv1 = nn.Conv2d(input_dim, 256, 3, padding=1)
-		self.bn1 = nn.BatchNorm2d(256)
-		self.conv2 = nn.Conv2d(256, 256, 3, padding=1)
-		self.bn2 = nn.BatchNorm2d(256)
-		self.conv3 = nn.Conv2d(256, 256, 3, padding=1)
-		self.bn3 = nn.BatchNorm2d(256)
-		self.conv4 = nn.Conv2d(256, 256, 3, padding=1)
-		self.bn4 = nn.BatchNorm2d(256)
-		self.deconv = nn.ConvTranspose2d(256, 256, 2, stride=2, padding=0)
+		self.deconv = nn.ConvTranspose2d(input_dim, 256, 2, stride=2, padding=0)
 		
 		#==========================================================================================================
 		self.duq_centroid_size = 512
@@ -95,10 +87,6 @@ class DuqHead(nn.Module):
 		return diff
 
 	def forward(self, x):
-		x = F.relu(self.bn1(self.conv1(x)))
-		x = F.relu(self.bn2(self.conv2(x)))
-		x = F.relu(self.bn3(self.conv3(x)))
-		x = F.relu(self.bn4(self.conv4(x)))
 		x = self.deconv(x) # B x 256 x 28 x 28
 
 		B, C, H, W = x.shape
@@ -119,10 +107,6 @@ class DuqHead(nn.Module):
 
 		self.N = self.gamma * self.N + (1-self.gamma) * y_targets.sum(0)
 
-		x = F.relu(self.bn1(self.conv1(x)))
-		x = F.relu(self.bn2(self.conv2(x)))
-		x = F.relu(self.bn3(self.conv3(x)))
-		x = F.relu(self.bn4(self.conv4(x)))
 		x = self.deconv(x) # B x 256 x 28 x 28
 
 		B, C, _, _ = x.shape
