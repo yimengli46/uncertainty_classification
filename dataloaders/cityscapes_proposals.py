@@ -139,6 +139,8 @@ class CityscapesProposalsDataset(data.Dataset):
 
 			# rescale sseg label to 28x28
 			sseg_label_patch = cv2.resize(sseg_label_patch, (28, 28), interpolation=cv2.INTER_NEAREST) # 28 x 28
+			mask_boundary = self.find_boundary(sseg_label_patch, ignore_value=self.ignore_index)
+			sseg_label_patch[mask_boundary==0] = self.ignore_index
 			#print('sseg_label_patch.shape = {}'.format(sseg_label_patch.shape))
 			batch_sseg_label[j] = torch.tensor(sseg_label_patch)
 
@@ -185,6 +187,28 @@ class CityscapesProposalsDataset(data.Dataset):
 		for _validc in self.valid_classes:
 			mask[mask == _validc] = self.class_map[_validc]
 		return mask
+
+	def find_boundary(self, grid_img, ignore_value=255):
+		H, W = grid_img.shape
+		mask_boundary = np.zeros((H, W), dtype=np.bool)
+		for i in range(H):
+			for j in range(W):
+				center = (i, j)
+				if grid_img[center] == ignore_value:
+					mask_boundary[center] = 1
+					continue
+				left   = (i, max(j-1, 0))
+				right  = (i, min(j+1, W-1))
+				top    = (max(i-1, 0), j)
+				bottom = (min(i+1, H-1), j)
+
+				if (grid_img[left] == grid_img[center] or grid_img[left]==ignore_value) and \
+				(grid_img[right] == grid_img[center] or grid_img[right]==ignore_value) and \
+				(grid_img[top] == grid_img[center] or grid_img[top]==ignore_value) and \
+				(grid_img[bottom] == grid_img[center]  or grid_img[bottom]==ignore_value):
+					mask_boundary[center] = 1
+
+		return mask_boundary
 
 	def get_proposal(self, i, j=0):
 		img_path = '{}/{}'.format(self.dataset_dir, self.img_list[i]['left_img'])
