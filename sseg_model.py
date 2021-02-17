@@ -109,7 +109,7 @@ class DuqHead(nn.Module):
 		y_pred = self.rbf(z)
 		y_pred = y_pred.reshape(B, H, W, self.num_classes).permute(0, 3, 1, 2)
 		
-		return y_pred, z
+		return y_pred#, z
 
 	def update_embeddings(self, x, y_targets):
 		y_targets = y_targets.reshape(-1, 1).long().squeeze(1)
@@ -140,12 +140,12 @@ class DuqHead(nn.Module):
 
 def calc_gradient_penalty(x, y_pred):
 	B, H, W, C = y_pred.shape
-	y_pred = y_pred.reshape(B, -1)
+	y_pred = y_pred.reshape(B*H*W, C)
 
 	gradients = torch.autograd.grad(
 		outputs=y_pred,
 		inputs = x,
-		grad_outputs=torch.ones_like(y_pred)/(1.0*H*W),
+		grad_outputs=torch.ones_like(y_pred),#/(1.0*H*W),
 		create_graph=True,
 	)[0]
 
