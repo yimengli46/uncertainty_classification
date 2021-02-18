@@ -113,9 +113,13 @@ class DuqHead(nn.Module):
 
 	def update_embeddings(self, x, y_targets):
 		y_targets = y_targets.reshape(-1, 1).long().squeeze(1)
-		idx_unignored = (y_targets < 255)
-		y_targets = y_targets[idx_unignored]
+		idx_ignored = (y_targets == 255)
+		y_targets[idx_ignored] = 0 # convert boundary points to class 0
+		#print('y_targets.shape = {}'.format(y_targets.shape))
 		y_targets = F.one_hot(y_targets, self.num_classes).float()
+		#print('y_targets.shape = {}'.format(y_targets.shape))
+		y_targets[idx_ignored, 0] = 0
+		#print('y_targets.shape = {}'.format(y_targets
 
 		self.N = self.gamma * self.N + (1-self.gamma) * y_targets.sum(0)
 
@@ -129,8 +133,6 @@ class DuqHead(nn.Module):
 
 		z = x.permute(0, 2, 3, 1)
 		z = z.reshape(-1, C)
-
-		z = z[idx_unignored]
 
 		z = torch.einsum('ij,mnj->imn', z, self.W)
 		embedding_sum = torch.einsum('ijk,ik->jk', z, y_targets)
