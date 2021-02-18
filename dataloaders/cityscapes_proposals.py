@@ -62,6 +62,16 @@ class CityscapesProposalsDataset(data.Dataset):
 		img_proposals[:, 0::2] *= scale_x
 		img_proposals[:, 1::2] *= scale_y
 
+		# randomly shift the proposals to cover more bg pixels
+		if self.split == 'train':
+			N = img_proposals.shape[0]
+			shift_x = np.random.uniform(-100, 100, N)
+			shift_y = np.random.uniform(-50, 50, N)
+			img_proposals[:, 0] += shift_x
+			img_proposals[:, 2] += shift_x
+			img_proposals[:, 1] += shift_y
+			img_proposals[:, 3] += shift_y
+
 		np.clip(img_proposals[:, 0], 0, img_W, out=img_proposals[:, 0])
 		np.clip(img_proposals[:, 1], 0, img_H, out=img_proposals[:, 1])
 		np.clip(img_proposals[:, 2], 0, img_W, out=img_proposals[:, 2])
