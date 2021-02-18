@@ -188,13 +188,13 @@ class CityscapesProposalsDataset(data.Dataset):
 			mask[mask == _validc] = self.class_map[_validc]
 		return mask
 
-	def find_boundary(self, grid_img, ignore_value=255):
+	def find_boundary(self, grid_img, bg_list=[0, 1, 3, 4], ignore_value=255):
 		H, W = grid_img.shape
 		mask_boundary = np.zeros((H, W), dtype=np.bool)
 		for i in range(H):
 			for j in range(W):
 				center = (i, j)
-				if grid_img[center] == ignore_value:
+				if grid_img[center] == ignore_value or grid_img[center] in bg_list:
 					mask_boundary[center] = 1
 					continue
 				left   = (i, max(j-1, 0))
@@ -209,6 +209,7 @@ class CityscapesProposalsDataset(data.Dataset):
 					mask_boundary[center] = 1
 
 		return mask_boundary
+
 
 	def get_proposal(self, i, j=0):
 		img_path = '{}/{}'.format(self.dataset_dir, self.img_list[i]['left_img'])
