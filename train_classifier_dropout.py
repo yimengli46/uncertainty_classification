@@ -8,7 +8,7 @@ from dataloaders.cityscapes_classification import CityscapesClassificationDatase
 
 BATCH_SIZE = 64
 rep_style = 'SSeg' #'both', 'ObjDet', 'SSeg'
-saved_folder = 'trained_model/prop_classification/dropout/{}'.format(rep_style)
+saved_folder = 'trained_model/prop_classification_old/dropout/{}'.format(rep_style)
 
 print('saved_folder = {}'.format(saved_folder))
 
