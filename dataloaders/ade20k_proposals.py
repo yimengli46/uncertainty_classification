@@ -23,12 +23,12 @@ class ADE20KProposalsDataset(data.Dataset):
 
 		self.img_list = np.load('{}/{}_img_list.npy'.format(self.dataset_dir, self.mode), allow_pickle=True).tolist()
 
-		self.valid_classes = [1, 4, 6, 8, 9, 11, 15, 16, 18, 19, 20, 23, 24, 25, 28, 29, 37, 38, 40, 48, 51, 66, 68]
+		self.valid_classes = [1, 4, 6, 8, 9, 11, 15, 16, 19, 20, 23, 24, 25, 28, 29, 38, 40, 48, 51, 66]
 		self.void_classes = []
 		for i in range(1, 151): #ADE has 150 semantic categories
 			if i not in self.valid_classes:
 				self.void_classes.append(i)
-		self.class_names = ['wall', 'floor', 'ceiling', 'bed', 'window', 'cabinet', 'door', 'table', 'plant', 'curtain', 'chair', 'painting', 'sofa', 'shelf', 'mirror', 'carpet', 'lamp', 'bathtub', 'cushion', 'sink', 'fridge', 'toilet', 'book']
+		self.class_names = ['wall', 'floor', 'ceiling', 'bed', 'window', 'cabinet', 'door', 'table', 'curtain', 'chair', 'painting', 'sofa', 'shelf', 'mirror', 'carpet', 'bathtub', 'cushion', 'sink', 'fridge', 'toilet']
 		assert len(self.valid_classes) == len(self.class_names)
 
 		self.ignore_index = 255
@@ -121,7 +121,6 @@ class ADE20KProposalsDataset(data.Dataset):
 			sseg_label_patch = cv2.resize(sseg_label_patch, (28, 28), interpolation=cv2.INTER_NEAREST) # 28 x 28
 			#print('sseg_label_patch.shape = {}'.format(sseg_label_patch.shape))
 			batch_sseg_label[j] = torch.tensor(sseg_label_patch)
-
 
 		if self.rep_style == 'ObjDet':
 			patch_feature = mask_feature
