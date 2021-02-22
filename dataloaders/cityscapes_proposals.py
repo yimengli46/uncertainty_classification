@@ -41,9 +41,9 @@ class CityscapesProposalsDataset(data.Dataset):
 			sampling_ratio=0)
 
 		# proposal, mask feature and sseg feature folder
-		self.proposal_folder = '/scratch/yli44/detectron2/my_projects/Bayesian_MaskRCNN/generated_proposals_whole/cityscapes_{}'.format(self.mode)
-		self.mask_ft_folder  = '/scratch/yli44/detectron2/my_projects/Bayesian_MaskRCNN/whole_features/cityscapes_{}'.format(self.mode)
-		self.sseg_ft_folder  = '/projects/kosecka/yimeng/Datasets/Cityscapes/deeplab_ft_8_classes/{}'.format(self.mode)
+		self.proposal_folder = '/home/yimeng/ARGO_scratch/detectron2/my_projects/Bayesian_MaskRCNN/generated_proposals_whole/cityscapes_{}'.format(self.mode)
+		self.mask_ft_folder  = '/home/yimeng/ARGO_scratch/detectron2/my_projects/Bayesian_MaskRCNN/whole_features/cityscapes_{}'.format(self.mode)
+		self.sseg_ft_folder  = '/home/yimeng/ARGO_datasets/Cityscapes/deeplab_ft_8_classes/{}'.format(self.mode)
 
 	def __len__(self):
 		return len(self.img_list)

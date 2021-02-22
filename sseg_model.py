@@ -82,17 +82,21 @@ class DuqHead(nn.Module):
 
 		self.W = nn.Parameter(torch.zeros(self.duq_centroid_size, self.num_classes, self.duq_model_output_size))
 		nn.init.kaiming_normal_(self.W, nonlinearity='relu')
-		self.register_buffer('N', torch.ones(self.num_classes)*20)
-		self.register_buffer('m', torch.normal(torch.zeros(self.duq_centroid_size, self.num_classes), 0.05))
-		self.m = self.m *self.N
+		self.register_buffer('N', torch.ones(self.num_classes)*20) # 8
+		self.register_buffer('m', torch.normal(torch.zeros(self.duq_centroid_size, self.num_classes), 0.05)) # 512 x 8
+		self.m = self.m *self.N # 512 x 8
 		self.sigma = self.duq_length_scale
 
 	def rbf(self, z):
-		z = torch.einsum('ij,mnj->imn', z, self.W)
-		embeddings = self.m / self.N.unsqueeze(0)
-		diff = z - embeddings.unsqueeze(0)
-		diff = (diff ** 2).mean(1).div(2 * self.sigma **2).mul(-1).exp()
-		return diff
+		z = torch.einsum('ij,mnj->imn', z, self.W) # (28x28) x 512 x 8
+		#print('z.shape = {}'.format(z.shape))
+		embeddings = self.m / self.N.unsqueeze(0) # 512 x 8
+		#print('embeddings.shape = {}'.format(embeddings.shape))
+		diff_a = z - embeddings.unsqueeze(0) # (28x28) x 512 x 8
+		#print('diff.shape = {}'.format(diff.shape))
+		# .mean(1) does the 1/n operation in eq.1 meaning average over centroid_size
+		diff = (diff_a ** 2).mean(1).div(2 * self.sigma **2).mul(-1).exp()
+		return diff, diff_a
 
 	def forward(self, x):
 		x = F.relu(self.bn1(self.conv1(x)))
@@ -106,10 +110,10 @@ class DuqHead(nn.Module):
 		z = x.permute(0, 2, 3, 1)
 		z = z.reshape(-1, C)
 
-		y_pred = self.rbf(z)
+		y_pred, y_pred_a = self.rbf(z)
 		y_pred = y_pred.reshape(B, H, W, self.num_classes).permute(0, 3, 1, 2)
 		
-		return y_pred, z
+		return y_pred, z, y_pred_a
 
 	def update_embeddings(self, x, y_targets):
 		y_targets = y_targets.reshape(-1, 1).long().squeeze(1)
@@ -117,7 +121,8 @@ class DuqHead(nn.Module):
 		y_targets = y_targets[idx_unignored]
 		y_targets = F.one_hot(y_targets, self.num_classes).float()
 
-		self.N = self.gamma * self.N + (1-self.gamma) * y_targets.sum(0)
+		# number of data points assigned to class c in minibatch
+		self.N = self.gamma * self.N + (1-self.gamma) * y_targets.sum(0) 
 
 		x = F.relu(self.bn1(self.conv1(x)))
 		x = F.relu(self.bn2(self.conv2(x)))
@@ -132,8 +137,8 @@ class DuqHead(nn.Module):
 
 		z = z[idx_unignored]
 
-		z = torch.einsum('ij,mnj->imn', z, self.W)
-		embedding_sum = torch.einsum('ijk,ik->jk', z, y_targets)
+		z = torch.einsum('ij,mnj->imn', z, self.W) # (28x28) x 512 x 8
+		embedding_sum = torch.einsum('ijk,ik->jk', z, y_targets) # 512 x 8
 
 		self.m = self.gamma * self.m + (1 - self.gamma) * embedding_sum
 
