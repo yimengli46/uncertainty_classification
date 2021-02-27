@@ -5,10 +5,7 @@ import torch.nn as nn
 import matplotlib.pyplot as plt
 from sseg_model import DuqHead
 from sseg_model import SSegHead
-from dataloaders.cityscapes_proposals import CityscapesProposalsDataset
-from dataloaders.lostAndFound_proposals import LostAndFoundProposalsDataset
-from dataloaders.fishyscapes_proposals import FishyscapesProposalsDataset
-from dataloaders.roadAnomaly_proposals import RoadAnomalyProposalsDataset
+from dataloaders.ade20k_proposals import ADE20KProposalsDataset
 import torch.nn.functional as F
 from utils import apply_color_map
 from scipy.stats import entropy
@@ -16,9 +13,9 @@ from scipy.special import softmax
 import cv2
 
 style = 'duq'
-dataset = 'lostAndFound' #'lostAndFound', 'cityscapes', 'fishyscapes', 'roadAnomaly'
-rep_style = 'SSeg' #'both', 'ObjDet', 'SSeg' 
-save_option = 'both' #'image', 'npy'
+dataset = 'ade20k'
+rep_style = 'ObjDet' #'both', 'ObjDet', 'SSeg' 
+save_option = 'image' #'image', 'npy'
 ignore_background_uncertainty = False
 ignore_boundary_uncertainty = True
 
@@ -27,9 +24,9 @@ ignore_boundary_uncertainty = True
 
 print('style = {}, rep_style = {},  dataset = {}'.format(style, rep_style, dataset))
 
-base_folder = 'visualization/adversarial_boundary'
+base_folder = 'visualization/ade20k'
 saved_folder = '{}/obj_sseg_{}/{}/{}'.format(base_folder, style, rep_style, dataset)
-trained_model_dir = 'trained_model/adversarial_boundary/{}/{}'.format(style, rep_style)
+trained_model_dir = 'trained_model/ade20k/{}/{}'.format(style, rep_style)
 
 # check if folder exists
 if not os.path.exists('{}/obj_sseg_{}'.format(base_folder, style)):
@@ -39,18 +36,9 @@ if not os.path.exists('{}/obj_sseg_{}/{}'.format(base_folder, style, rep_style))
 if not os.path.exists(saved_folder): 
 	os.mkdir(saved_folder)
 
-if dataset == 'cityscapes':
-	dataset_folder = '/home/yimeng/ARGO_datasets/Cityscapes'
-	ds_val = CityscapesProposalsDataset(dataset_folder, 'val', rep_style=rep_style)
-elif dataset == 'lostAndFound':
-	dataset_folder = '/home/yimeng/ARGO_datasets/Lost_and_Found'
-	ds_val = LostAndFoundProposalsDataset(dataset_folder, rep_style=rep_style)
-elif dataset == 'fishyscapes':
-	dataset_folder = '/projects/kosecka/yimeng/Datasets/Fishyscapes_Static'
-	ds_val = FishyscapesProposalsDataset(dataset_folder, rep_style=rep_style)
-elif dataset == 'roadAnomaly':
-	dataset_folder = '/projects/kosecka/yimeng/Datasets/RoadAnomaly'
-	ds_val = RoadAnomalyProposalsDataset(dataset_folder, rep_style=rep_style)
+if dataset == 'ade20k':
+	dataset_folder = '/home/yimeng/ARGO_datasets/ADE20K/Semantic_Segmentation'
+	ds_val = ADE20KProposalsDataset(dataset_folder, 'val', rep_style=rep_style)
 num_classes = ds_val.NUM_CLASSES
 
 if rep_style == 'both':
@@ -68,10 +56,8 @@ classifier.eval()
 
 with torch.no_grad():
 	for i in range(len(ds_val)):
-		if dataset == 'cityscapes':
-			num_proposals = 100
-		elif dataset == 'lostAndFound':
-			num_proposals = ds_val.get_num_proposal(i)
+		if dataset == 'ade20k':
+			num_proposals = 5
 		
 		for j in range(num_proposals):
 			patch_feature, batch_sseg_label, img_proposal, sseg_label_proposal = ds_val.get_proposal(i, j)
@@ -81,27 +67,20 @@ with torch.no_grad():
 			logits = logits[0]
 
 			H, W = sseg_label_proposal.shape
+
 			#'''
-			# compute uncertainty on background classes
-			logits = F.interpolate(logits, size=(H, W), mode='bilinear', align_corners=False)
+			# compute uncertainty on all classes
+			logits = F.interpolate(logits, size=(H, W), mode='bilinear', align_corners=True)
 
 			#logits = logits.cpu().numpy()[0]
-			logits = logits.cpu().numpy()[0, [0, 1, 3, 4]] # 4 x H x W
+			logits = logits.cpu().numpy()[0] # 4 x H x W
 			uncertainty = 1.0 - np.amax(logits, axis=0)
 			
 			sseg_pred = np.argmax(logits, axis=0)
-			sseg_pred[sseg_pred == 0] = 0 # road
-			sseg_pred[sseg_pred == 1] = 1 # building
-			sseg_pred[sseg_pred == 2] = 3 # vegetation
-			sseg_pred[sseg_pred == 3] = 4 # sky
-			sseg_pred[uncertainty > 0.3] = 6
+			#'''
 
-
-			if dataset == 'cityscapes':
-				color_sseg_label_proposal = apply_color_map(sseg_label_proposal)
-			else:
-				color_sseg_label_proposal = sseg_label_proposal
-			color_sseg_pred = apply_color_map(sseg_pred)
+			color_sseg_label_proposal = apply_color_map(sseg_label_proposal, num_classes='ade20k')
+			color_sseg_pred = apply_color_map(sseg_pred, num_classes='ade20k')
 			#assert 1==2
 
 			if save_option == 'both' or save_option == 'image':
@@ -124,7 +103,8 @@ with torch.no_grad():
 				ax[1][1].set_title("uncertainty")
 
 				fig.tight_layout()
-				fig.savefig('{}/img_{}_proposal_{}.jpg'.format(saved_folder, i, j))
+				plt.show()
+				#fig.savefig('{}/img_{}_proposal_{}.jpg'.format(saved_folder, i, j))
 				plt.close()
 
 			if save_option == 'both' or save_option == 'npy':

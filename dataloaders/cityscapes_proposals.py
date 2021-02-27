@@ -26,8 +26,8 @@ class CityscapesProposalsDataset(data.Dataset):
 
 		self.void_classes = [0, 1, 2, 3, 4, 5, 10, 14, 15, 16, -1]
 		self.valid_classes = [7, 11, 17, 21, 23, 24, 26, 31]
-		self.class_names = ['unlabelled', 'road', 'building', \
-							'pole', 'vegetation', 'sky', 'person', 'car', 'train', ]
+		self.sseg_class_names = ['road', 'building', 'pole', 'vegetation', 'sky', 'person', 'car', 'train']
+		self.cls_class_names = ['background', 'pole', 'person', 'car', 'train']
 
 		self.ignore_index = 255
 		self.NUM_CLASSES = len(self.valid_classes)

@@ -69,7 +69,7 @@ class LostAndFoundProposalsDataset(data.Dataset):
 		v = self.data_json_file[str(i)]
 		return len(v['regions'])
 
-	def get_proposal(self, i, j=0):
+	def get_all_proposals(self, i, inlier_props=20):
 		img_path = '{}/{}.png'.format(self.dataset_dir, i)
 		lbl_path = '{}/{}_label.png'.format(self.dataset_dir, i)
 
@@ -79,42 +79,57 @@ class LostAndFoundProposalsDataset(data.Dataset):
 		
 		# read proposals
 		proposals = np.load('{}/{}_proposal.npy'.format(self.proposal_folder, i), allow_pickle=True)
+		num_outlier_props = proposals.shape[0]
+		regular_proposals = np.load('{}/{}_regular_proposal.npy'.format(self.proposal_folder, i),
+			allow_pickle=True) # 100 x 4
+		#print('regular_proposals.shape = {}'.format(regular_proposals.shape))
+		
+		proposals = np.concatenate((proposals, regular_proposals), axis=0)
 		# read mask features
 		mask_feature = np.load('{}/{}_proposal_mask_features.npy'.format(self.mask_ft_folder, i), allow_pickle=True)
+		regular_mask_feature = np.load('{}/{}_regular_proposal_mask_features.npy'.format(
+			self.mask_ft_folder, i), allow_pickle=True) # 100 x 256 x 14 x 14
+		mask_feature = np.concatenate((mask_feature, regular_mask_feature), axis=0)
+		#print('regular_mask_feature.shape = {}'.format(regular_mask_feature.shape))
+		#assert 1==2
 		# read sseg features
 		sseg_feature = np.load('{}/{}_deeplab_ft.npy'.format(self.sseg_ft_folder, i), allow_pickle=True) # 256 x 128 x 256
 		#print('sseg_feature.shape = {}'.format(sseg_feature.shape))
 
 		sseg_feature = torch.tensor(sseg_feature).unsqueeze(0).to(device) # 1 x 256 x 128 x 256
 
-		index = np.array([j])
+		num_total_props = num_outlier_props+inlier_props
+		index = np.array(list(range(num_total_props)))
 		proposals = proposals[index] # B x 4
 		mask_feature = torch.tensor(mask_feature[index]).to(device) # B x 256 x 14 x 14
 
-		batch_sseg_label = torch.zeros((1, 28, 28))
-		batch_prop_boxes = torch.zeros((1, 4))
+		batch_sseg_label = torch.zeros((num_total_props, 28, 28))
+		batch_prop_boxes = torch.tensor(proposals).to(device)
+		img_proposals = []
+		sseg_label_proposals = []
+		proposals_coords = []
 
-		x1, y1, x2, y2 = proposals[0]
-		prop_x1 = int(round(x1))
-		prop_y1 = int(round(y1))
-		prop_x2 = int(round(x2))
-		prop_y2 = int(round(y2))
+		for j in range(num_total_props):
+			x1, y1, x2, y2 = proposals[j]
 
-		img_proposal = rgb_img[prop_y1:prop_y2, prop_x1:prop_x2]
-		sseg_label_proposal = sseg_label[prop_y1:prop_y2, prop_x1:prop_x2]
+			prop_x1 = int(round(x1))
+			prop_y1 = int(round(y1))
+			prop_x2 = int(round(x2))
+			prop_y2 = int(round(y2))
 
-		batch_prop_boxes[0, 0] = prop_x1
-		batch_prop_boxes[0, 1] = prop_y1
-		batch_prop_boxes[0, 2] = prop_x2
-		batch_prop_boxes[0, 3] = prop_y2
+			img_proposal = rgb_img[prop_y1:prop_y2, prop_x1:prop_x2]
+			sseg_label_proposal = sseg_label[prop_y1:prop_y2, prop_x1:prop_x2]
+			img_proposals.append(img_proposal)
+			sseg_label_proposals.append(sseg_label_proposal)
+			proposals_coords.append([prop_x1, prop_y1, prop_x2, prop_y2])
 
-		# rescale sseg label to 28x28
-		sseg_label_patch = cv2.resize(sseg_label_proposal, (28, 28), interpolation=cv2.INTER_NEAREST) # 28 x 28
-		sseg_label_patch = sseg_label_patch.astype('int')
-		#print('sseg_label_patch = {}'.format(sseg_label_patch))
-		batch_sseg_label[0] = torch.tensor(sseg_label_patch)
+			# rescale sseg label to 28x28
+			sseg_label_patch = cv2.resize(sseg_label_proposal, (28, 28), interpolation=cv2.INTER_NEAREST) # 28 x 28
+			sseg_label_patch = sseg_label_patch.astype('int')
+			#print('sseg_label_patch = {}'.format(sseg_label_patch))
+			batch_sseg_label[j] = torch.tensor(sseg_label_patch)
 
-		batch_prop_boxes = batch_prop_boxes.to(device)
+		batch_prop_boxes = batch_prop_boxes.to(device).float()
 		batch_sseg_feature = roi_align(sseg_feature, [batch_prop_boxes], output_size=(14, 14), spatial_scale=1/8.0, aligned=True)
 
 		if self.rep_style == 'both':
@@ -126,4 +141,4 @@ class LostAndFoundProposalsDataset(data.Dataset):
 
 		#print('patch_feature.shape = {}'.format(patch_feature.shape))
 
-		return patch_feature, batch_sseg_label, img_proposal, sseg_label_proposal
+		return patch_feature, batch_sseg_label, img_proposals, sseg_label_proposals, rgb_img, proposals_coords
