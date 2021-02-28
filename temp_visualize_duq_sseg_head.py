@@ -16,9 +16,9 @@ from scipy.special import softmax
 import cv2
 
 style = 'duq'
-dataset = 'lostAndFound' #'lostAndFound', 'cityscapes', 'fishyscapes', 'roadAnomaly'
+dataset = 'fishyscapes' #'lostAndFound', 'cityscapes', 'fishyscapes', 'roadAnomaly'
 rep_style = 'SSeg' #'both', 'ObjDet', 'SSeg' 
-save_option = 'both' #'image', 'npy'
+save_option = 'npy' #'image', 'npy'
 ignore_background_uncertainty = False
 
 #for dataset in ['cityscapes', 'lostAndFound', 'roadAnomaly', 'fishyscapes']:
@@ -77,6 +77,10 @@ with torch.no_grad():
 			num_proposals = 2
 		elif dataset == 'lostAndFound':
 			num_proposals = ds_val.get_num_proposal(i)
+		elif dataset == 'fishyscapes':
+			num_proposals = ds_val.get_num_proposal(i)
+		elif dataset == 'roadAnomaly':
+			num_proposals = 20
 		
 		for j in range(num_proposals):
 			patch_feature, batch_sseg_label, img_proposal, sseg_label_proposal = ds_val.get_proposal(i, j)
@@ -110,10 +114,12 @@ with torch.no_grad():
 			sseg_pred[sseg_pred == 2] = 3 # vegetation
 			sseg_pred[sseg_pred == 3] = 4 # sky
 			sseg_pred[uncertainty > 0.3] = 6
+			'''
 			uncertainty[sseg_pred == 0] = 0 # road
 			uncertainty[sseg_pred == 1] = 0 # building
 			uncertainty[sseg_pred == 3] = 0 # vegetation
 			uncertainty[sseg_pred == 4] = 0 # sky
+			'''
 
 			'''
 			sseg_pred = torch.argmax(logits, dim=1)
