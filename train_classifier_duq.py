@@ -8,8 +8,8 @@ from dataloaders.cityscapes_classification import CityscapesClassificationDatase
 from loss import BinaryCrossEntropyLoss
 
 BATCH_SIZE = 64
-rep_style = 'SSeg' #'both', 'ObjDet', 'SSeg'
-saved_folder = 'trained_model/prop_classification_old/duq/{}'.format(rep_style)
+rep_style = 'both' #'both', 'ObjDet', 'SSeg'
+saved_folder = 'trained_model/prop_classification/duq/{}'.format(rep_style)
 duq_l_gradient_penalty = 0.0
 
 print('saved_folder = {}'.format(saved_folder))
@@ -20,11 +20,9 @@ else:
     input_dim = 256
 
 dataset_folder = '/projects/kosecka/yimeng/Datasets/Cityscapes'
-mask_folder_train = 'classification_label_mask/all_props/obj_sseg_duq/ObjDet/cityscapes_{}'.format('train')
-ds_train = CityscapesClassificationDataset(dataset_folder, 'train', batch_size=BATCH_SIZE, rep_style=rep_style, mask_dir=mask_folder_train)
+ds_train = CityscapesClassificationDataset(dataset_folder, 'train', batch_size=BATCH_SIZE, rep_style=rep_style)
 num_classes = ds_train.NUM_CLASSES
-mask_folder_val = 'classification_label_mask/all_props/obj_sseg_duq/ObjDet/cityscapes_{}'.format('val')
-ds_val = CityscapesClassificationDataset(dataset_folder, 'val', batch_size=BATCH_SIZE, rep_style=rep_style, mask_dir=mask_folder_val)
+ds_val = CityscapesClassificationDataset(dataset_folder, 'val', batch_size=BATCH_SIZE, rep_style=rep_style)
 
 # # Classification
 device = torch.device('cuda')
