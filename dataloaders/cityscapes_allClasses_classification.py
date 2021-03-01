@@ -13,7 +13,7 @@ from .pooler import ROIPooler
 
 device = torch.device('cuda')
 
-class CityscapesClassificationDataset(data.Dataset):
+class CityscapesAllClassesClassificationDataset(data.Dataset):
 	def __init__(self, dataset_dir, split='train', batch_size=3, rep_style='both'):
 
 		self.dataset_dir = dataset_dir
@@ -25,8 +25,8 @@ class CityscapesClassificationDataset(data.Dataset):
 		self.img_list = np.load('{}/{}_img_list.npy'.format(self.dataset_dir, self.mode), allow_pickle=True).tolist()
 
 		self.void_classes = [0, 1, 2, 3, 4, 5, 10, 14, 15, 16, -1]
-		self.valid_classes = [7, 17, 24, 26, 31]
-		self.class_names = ['background', 'pole', 'person', 'car', 'train']
+		self.valid_classes = [7, 17, 24, 25, 26, 27, 28, 31, 32, 33]
+		self.class_names = ['background', 'pole', 'person', 'rider', 'car', 'truck', 'bus', 'train', 'motorcycle', 'bicycle']
 
 		self.ignore_index = 255
 		self.NUM_CLASSES = len(self.valid_classes)
@@ -175,11 +175,11 @@ class CityscapesClassificationDataset(data.Dataset):
 		mask[mask == 8] = 7 # sidewalk -> road
 		mask[mask == 9] = 7 # parking -> road
 		mask[mask == 22] = 21 # terrain -> vegetation
-		mask[mask == 25] = 24 # rider -> person
-		mask[mask == 32] = 24 # motorcycle -> person
-		mask[mask == 33] = 24 # bicycle -> person
-		mask[mask == 27] = 26 # truck -> car
-		mask[mask == 28] = 26 # bus -> car
+		#mask[mask == 25] = 24 # rider -> person
+		#mask[mask == 32] = 24 # motorcycle -> person
+		#mask[mask == 33] = 24 # bicycle -> person
+		#mask[mask == 27] = 26 # truck -> car
+		#mask[mask == 28] = 26 # bus -> car
 		mask[mask == 29] = 26 # caravan -> car
 		mask[mask == 30] = 26 # trailer -> car
 		mask[mask == 12] = 11 # wall -> building
@@ -208,8 +208,8 @@ class CityscapesClassificationDataset(data.Dataset):
 		return mask, label
 
 '''
-cityscapes_train = CityscapesClassificationDataset('/home/yimeng/ARGO_datasets/Cityscapes', 'train', batch_size=20)
-a = cityscapes_train[0]
+cityscapes_train = CityscapesAllClassesClassificationDataset('/home/yimeng/ARGO_datasets/Cityscapes', 'train', batch_size=20)
+#a = cityscapes_train[0]
 #b = cityscapes_train[1]
 #c = cityscapes_train[2]
 #b = cityscapes_train.get_proposal(0, 2)
