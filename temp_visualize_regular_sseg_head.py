@@ -6,21 +6,23 @@ import matplotlib.pyplot as plt
 from sseg_model import SSegHead
 from dataloaders.cityscapes_proposals import CityscapesProposalsDataset
 from dataloaders.lostAndFound_proposals import LostAndFoundProposalsDataset
+from dataloaders.fishyscapes_proposals import FishyscapesProposalsDataset
+from dataloaders.roadAnomaly_proposals import RoadAnomalyProposalsDataset
 import torch.nn.functional as F
 from utils import apply_color_map
 from scipy.stats import entropy
 from scipy.special import softmax
 
-style = 'regular'
-dataset = 'lostAndFound' #'lostAndFound', 'cityscapes', 'fishyscapes'
-rep_style = 'ObjDet' #'both', 'ObjDet', 'SSeg' 
-save_option = 'both' #'image', 'npy'
+style = 'duq'
+dataset = 'roadAnomaly' #'lostAndFound', 'cityscapes', 'fishyscapes'
+rep_style = 'SSeg' #'both', 'ObjDet', 'SSeg' 
+save_option = 'npy' #'image', 'npy'
 
 print('style = {}, rep_style = {},  dataset = {}'.format(style, rep_style, dataset))
 
 base_folder = 'visualization/temp_all_props_bg_other'
 saved_folder = '{}/obj_sseg_{}/{}/{}'.format(base_folder, style, rep_style, dataset)
-trained_model_dir = 'trained_model/all_props/{}/{}'.format(style, rep_style)
+trained_model_dir = 'trained_model/bg_only/{}/{}'.format(style, rep_style)
 
 
 # check if folder exists
@@ -62,9 +64,13 @@ with torch.no_grad():
 			num_proposals = 2
 		elif dataset == 'lostAndFound':
 			num_proposals = ds_val.get_num_proposal(i)
+		elif dataset == 'fishyscapes':
+			num_proposals = ds_val.get_num_proposal(i)
+		elif dataset == 'roadAnomaly':
+			num_proposals = 20
 		
 		for j in range(num_proposals):
-			print('i = {}, j = {}'.format(i, j))
+			#print('i = {}, j = {}'.format(i, j))
 			patch_feature, _, img_proposal, sseg_label_proposal = ds_val.get_proposal(i, j)
 
 			patch_feature = patch_feature.to(device)

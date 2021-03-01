@@ -6,17 +6,17 @@ import matplotlib.pyplot as plt
 from sseg_model import DropoutHead
 from dataloaders.cityscapes_proposals import CityscapesProposalsDataset
 from dataloaders.lostAndFound_proposals import LostAndFoundProposalsDataset
-#from dataloaders.fishyscapes_proposals import FishyscapesProposalsDataset
-#from dataloaders.roadAnomaly_proposals import RoadAnomalyProposalsDataset
+from dataloaders.fishyscapes_proposals import FishyscapesProposalsDataset
+from dataloaders.roadAnomaly_proposals import RoadAnomalyProposalsDataset
 import torch.nn.functional as F
 from utils import apply_color_map
 from scipy.stats import entropy
 from scipy.special import softmax
 
 style = 'dropout'
-dataset = 'lostAndFound' #'lostAndFound', 'cityscapes', 'fishyscapes', 'roadAnomaly'
-rep_style = 'ObjDet' #'both', 'ObjDet', 'SSeg' 
-save_option = 'both' #'image', 'npy'
+dataset = 'fishyscapes' #'lostAndFound', 'cityscapes', 'fishyscapes', 'roadAnomaly'
+rep_style = 'SSeg' #'both', 'ObjDet', 'SSeg' 
+save_option = 'npy' #'image', 'npy'
 ignore_background_uncertainty = False
 
 print('style = {}, rep_style = {},  dataset = {}'.format(style, rep_style, dataset))
@@ -76,7 +76,7 @@ with torch.no_grad():
 			num_proposals = 20
 
 		for j in range(num_proposals):
-			print('i = {}, j = {}'.format(i, j))
+			#print('i = {}, j = {}'.format(i, j))
 			patch_feature, _, img_proposal, sseg_label_proposal = ds_val.get_proposal(i, j)
 			H, W = sseg_label_proposal.shape
 

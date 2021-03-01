@@ -16,20 +16,20 @@ from scipy.special import softmax
 import cv2
 
 style = 'duq'
-dataset = 'lostAndFound' #'lostAndFound', 'cityscapes', 'fishyscapes', 'roadAnomaly'
+dataset = 'fishyscapes' #'lostAndFound', 'cityscapes', 'fishyscapes', 'roadAnomaly'
 rep_style = 'SSeg' #'both', 'ObjDet', 'SSeg' 
-save_option = 'both' #'image', 'npy'
+save_option = 'npy' #'image', 'npy'
 ignore_background_uncertainty = False
-ignore_boundary_uncertainty = True
+ignore_boundary_uncertainty = False
 
 #for dataset in ['cityscapes', 'lostAndFound', 'roadAnomaly', 'fishyscapes']:
 #	for rep_style in ['both', 'ObjDet', 'SSeg']:
 
 print('style = {}, rep_style = {},  dataset = {}'.format(style, rep_style, dataset))
 
-base_folder = 'visualization/adversarial_boundary'
+base_folder = 'visualization/all_props_all_classes'
 saved_folder = '{}/obj_sseg_{}/{}/{}'.format(base_folder, style, rep_style, dataset)
-trained_model_dir = 'trained_model/adversarial_boundary/{}/{}'.format(style, rep_style)
+trained_model_dir = 'trained_model/all_props/{}/{}'.format(style, rep_style)
 
 # check if folder exists
 if not os.path.exists('{}/obj_sseg_{}'.format(base_folder, style)):
@@ -46,10 +46,10 @@ elif dataset == 'lostAndFound':
 	dataset_folder = '/home/yimeng/ARGO_datasets/Lost_and_Found'
 	ds_val = LostAndFoundProposalsDataset(dataset_folder, rep_style=rep_style)
 elif dataset == 'fishyscapes':
-	dataset_folder = '/projects/kosecka/yimeng/Datasets/Fishyscapes_Static'
+	dataset_folder = '/home/yimeng/ARGO_datasets/Fishyscapes_Static'
 	ds_val = FishyscapesProposalsDataset(dataset_folder, rep_style=rep_style)
 elif dataset == 'roadAnomaly':
-	dataset_folder = '/projects/kosecka/yimeng/Datasets/RoadAnomaly'
+	dataset_folder = '/home/yimeng/ARGO_datasets/RoadAnomaly'
 	ds_val = RoadAnomalyProposalsDataset(dataset_folder, rep_style=rep_style)
 num_classes = ds_val.NUM_CLASSES
 
@@ -72,6 +72,10 @@ with torch.no_grad():
 			num_proposals = 100
 		elif dataset == 'lostAndFound':
 			num_proposals = ds_val.get_num_proposal(i)
+		elif dataset == 'fishyscapes':
+			num_proposals = ds_val.get_num_proposal(i)
+		elif dataset == 'roadAnomaly':
+			num_proposals = 20
 		
 		for j in range(num_proposals):
 			patch_feature, batch_sseg_label, img_proposal, sseg_label_proposal = ds_val.get_proposal(i, j)
@@ -85,8 +89,8 @@ with torch.no_grad():
 			# compute uncertainty on background classes
 			logits = F.interpolate(logits, size=(H, W), mode='bilinear', align_corners=False)
 
-			#logits = logits.cpu().numpy()[0]
-			logits = logits.cpu().numpy()[0, [0, 1, 3, 4]] # 4 x H x W
+			logits = logits.cpu().numpy()[0]
+			#logits = logits.cpu().numpy()[0, [0, 1, 3, 4]] # 4 x H x W
 			uncertainty = 1.0 - np.amax(logits, axis=0)
 			
 			sseg_pred = np.argmax(logits, axis=0)
