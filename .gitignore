@@ -1,0 +1,4 @@
+__pycache__/
+trained_model/
+visualization/
+classification_label_mask/
