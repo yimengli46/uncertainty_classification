@@ -3,7 +3,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 import matplotlib.pyplot as plt
-from sseg_model import DuqHead, DuqHead_noconv
+from sseg_model import DuqHead
 from dataloaders.cityscapes_proposals import CityscapesProposalsDataset
 from dataloaders.lostAndFound_proposals import LostAndFoundProposalsDataset
 from dataloaders.fishyscapes_proposals import FishyscapesProposalsDataset
@@ -16,8 +16,8 @@ import cv2
 
 style = 'duq'
 dataset = 'roadAnomaly' #'lostAndFound', 'cityscapes', 'fishyscapes', 'roadAnomaly'
-rep_style = 'SSeg' #'both', 'ObjDet', 'SSeg' 
-save_option = 'npy' #'image', 'npy'
+rep_style = 'ObjDet' #'both', 'ObjDet', 'SSeg' 
+save_option = 'image' #'image', 'npy'
 ignore_background_uncertainty = False
 ignore_boundary_uncertainty = False
 
@@ -30,7 +30,7 @@ print('style = {}, rep_style = {},  dataset = {}'.format(style, rep_style, datas
 
 base_folder = 'gen_object_mask'
 saved_folder = '{}/obj_sseg_{}/{}/{}'.format(base_folder, style, rep_style, dataset)
-trained_model_dir = 'trained_model/no_conv_deeplab_lowlevel/{}/{}'.format(style, rep_style)
+trained_model_dir = 'trained_model/no_conv_maskrcnn_coco/{}/{}'.format(style, rep_style)
 
 # check if folder exists
 if not os.path.exists('{}/obj_sseg_{}'.format(base_folder, style)):
@@ -41,28 +41,28 @@ if not os.path.exists(saved_folder):
 	os.mkdir(saved_folder)
 
 if dataset == 'cityscapes':
-	dataset_folder = '/home/yimeng/ARGO_datasets/Cityscapes'
+	dataset_folder = '/projects/kosecka/yimeng/Datasets/Cityscapes'
 	ds_val = CityscapesProposalsDataset(dataset_folder, 'val', rep_style=rep_style)
 elif dataset == 'lostAndFound':
-	dataset_folder = '/home/yimeng/ARGO_datasets/Lost_and_Found'
+	dataset_folder = '/projects/kosecka/yimeng/Datasets/Lost_and_Found'
 	ds_val = LostAndFoundProposalsDataset(dataset_folder, rep_style=rep_style)
 elif dataset == 'fishyscapes':
-	dataset_folder = '/home/yimeng/ARGO_datasets/Fishyscapes_Static'
+	dataset_folder = '/projects/kosecka/yimeng/Datasets/Fishyscapes_Static'
 	ds_val = FishyscapesProposalsDataset(dataset_folder, rep_style=rep_style)
 elif dataset == 'roadAnomaly':
-	dataset_folder = '/home/yimeng/ARGO_datasets/RoadAnomaly'
+	dataset_folder = '/projects/kosecka/yimeng/Datasets/RoadAnomaly'
 	ds_val = RoadAnomalyProposalsDataset(dataset_folder, rep_style=rep_style)
 num_classes = ds_val.NUM_CLASSES
 
 if rep_style == 'both':
 	input_dim = 512
 else:
-	input_dim = 304
+	input_dim = 256
 
 device = torch.device('cuda')
 
 #classifier = DuqHead(num_classes, input_dim).to(device)
-classifier = DuqHead_noconv(num_classes, input_dim).to(device)
+classifier = DuqHead(num_classes, input_dim).to(device)
 #classifier = SSegHead(num_classes, input_dim).to(device)
 classifier.load_state_dict(torch.load('{}/{}_classifier_0.0.pth'.format(trained_model_dir, style)))
 classifier.eval()

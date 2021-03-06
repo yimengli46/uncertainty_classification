@@ -31,7 +31,7 @@ class RoadAnomalyProposalsDataset(data.Dataset):
 
 		# proposal, mask feature and sseg feature folder
 		self.proposal_folder = '/scratch/yli44/detectron2/my_projects/Bayesian_MaskRCNN/generated_proposals_whole/roadAnomaly'
-		self.mask_ft_folder  = '/scratch/yli44/detectron2/my_projects/Bayesian_MaskRCNN/whole_features/roadAnomaly'
+		self.mask_ft_folder  = '/scratch/yli44/detectron2/my_projects/Bayesian_MaskRCNN/whole_features_coco/roadAnomaly'
 		self.sseg_ft_folder  = '/scratch/yli44/Anomaly_Detection_SSeg-improve_deeplab/results_deeplab/roadAnomaly'
 
 	def __len__(self):

@@ -9,8 +9,8 @@ from metrics import Evaluator
 from loss import BinaryCrossEntropyLoss
 
 BATCH_SIZE = 64
-rep_style = 'SSeg' #'both', 'ObjDet', 'SSeg'
-saved_folder = 'trained_model/no_conv_deeplab_lowlevel/duq/{}'.format(rep_style)
+rep_style = 'ObjDet' #'both', 'ObjDet', 'SSeg'
+saved_folder = 'trained_model/no_conv_maskrcnn_coco/duq/{}'.format(rep_style)
 duq_l_gradient_penalty = 0.0
 
 print('saved_folder = {}'.format(saved_folder))
@@ -18,7 +18,7 @@ print('saved_folder = {}'.format(saved_folder))
 if rep_style == 'both':
     input_dim = 512
 else:
-    input_dim = 304
+    input_dim = 256
 
 dataset_folder = '/projects/kosecka/yimeng/Datasets/Cityscapes'
 ds_train = CityscapesProposalsDataset(dataset_folder, 'train', batch_size=BATCH_SIZE, rep_style=rep_style)
