@@ -43,7 +43,7 @@ class CityscapesProposalsDataset(data.Dataset):
 		# proposal, mask feature and sseg feature folder
 		self.proposal_folder = '/scratch/yli44/detectron2/my_projects/Bayesian_MaskRCNN/generated_proposals_whole/cityscapes_{}'.format(self.mode)
 		self.mask_ft_folder  = '/scratch/yli44/detectron2/my_projects/Bayesian_MaskRCNN/whole_features/cityscapes_{}'.format(self.mode)
-		self.sseg_ft_folder  = '/projects/kosecka/yimeng/Datasets/Cityscapes/deeplab_ft_8_classes/{}'.format(self.mode)
+		self.sseg_ft_folder  = '/scratch/yli44/Anomaly_Detection_SSeg-improve_deeplab/results_deeplab/cityscapes_{}'.format(self.mode)
 
 	def __len__(self):
 		return len(self.img_list)
