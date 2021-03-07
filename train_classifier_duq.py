@@ -4,12 +4,12 @@ import torch
 import torch.nn as nn
 import matplotlib.pyplot as plt
 from classifier_model import DuqHead, calc_gradient_penalty
-from dataloaders.cityscapes_classification import CityscapesClassificationDataset
+from dataloaders.cityscapes_allClasses_classification import CityscapesAllClassesClassificationDataset
 from loss import BinaryCrossEntropyLoss
 
 BATCH_SIZE = 64
-rep_style = 'both' #'both', 'ObjDet', 'SSeg'
-saved_folder = 'trained_model/prop_classification/duq/{}'.format(rep_style)
+rep_style = 'ObjDet' #'both', 'ObjDet', 'SSeg'
+saved_folder = 'trained_model/prop_cls_more_class/duq/{}'.format(rep_style)
 duq_l_gradient_penalty = 0.0
 
 print('saved_folder = {}'.format(saved_folder))
@@ -20,9 +20,9 @@ else:
     input_dim = 256
 
 dataset_folder = '/projects/kosecka/yimeng/Datasets/Cityscapes'
-ds_train = CityscapesClassificationDataset(dataset_folder, 'train', batch_size=BATCH_SIZE, rep_style=rep_style)
+ds_train = CityscapesAllClassesClassificationDataset(dataset_folder, 'train', batch_size=BATCH_SIZE, rep_style=rep_style)
 num_classes = ds_train.NUM_CLASSES
-ds_val = CityscapesClassificationDataset(dataset_folder, 'val', batch_size=BATCH_SIZE, rep_style=rep_style)
+ds_val = CityscapesAllClassesClassificationDataset(dataset_folder, 'val', batch_size=BATCH_SIZE, rep_style=rep_style)
 
 # # Classification
 device = torch.device('cuda')
