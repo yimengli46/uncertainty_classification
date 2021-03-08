@@ -8,9 +8,9 @@ from dataloaders.cityscapes_classification import CityscapesClassificationDatase
 from loss import BinaryCrossEntropyLoss
 
 BATCH_SIZE = 64
-rep_style = 'both' #'both', 'ObjDet', 'SSeg'
-saved_folder = 'trained_model/prop_classification/duq/{}'.format(rep_style)
-duq_l_gradient_penalty = 0.0
+rep_style = 'ObjDet' #'both', 'ObjDet', 'SSeg'
+saved_folder = 'trained_model/prop_cls_GP/duq/{}'.format(rep_style)
+duq_l_gradient_penalty = 0.1
 
 print('saved_folder = {}'.format(saved_folder))
 
@@ -45,11 +45,12 @@ def train_classifier(train_loader, classifier, optimizer):
         
         logits = classifier(images, masks)
         #print('logits.shape = {}'.format(logits.shape))
+        #assert 1==2
 
         loss = BinaryCrossEntropyLoss(logits, labels.long(), num_classes)
         
         if duq_l_gradient_penalty > 0.0:
-            logits = logits.permute(0, 2, 3, 1) # B, H, W, C
+            #logits = logits.permute(0, 2, 3, 1) # B, H, W, C
             gradient_penalty = duq_l_gradient_penalty * calc_gradient_penalty(images, logits)
             print('loss = {:.4f}, gradient_penalty = {:.4f}'.format(loss.item(), gradient_penalty))
             loss += gradient_penalty

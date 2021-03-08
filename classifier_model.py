@@ -163,13 +163,13 @@ class DuqHead(nn.Module):
 
 
 def calc_gradient_penalty(x, y_pred):
-	B, H, W, C = y_pred.shape
-	y_pred = y_pred.reshape(B, -1)
+	#B, H, W, C = y_pred.shape
+	#y_pred = y_pred.reshape(B, -1)
 
 	gradients = torch.autograd.grad(
 		outputs=y_pred,
 		inputs = x,
-		grad_outputs=torch.ones_like(y_pred)/(1.0*H*W),
+		grad_outputs=torch.ones_like(y_pred),
 		create_graph=True,
 	)[0]
 

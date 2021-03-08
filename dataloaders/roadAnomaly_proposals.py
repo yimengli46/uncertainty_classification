@@ -20,8 +20,7 @@ class RoadAnomalyProposalsDataset(data.Dataset):
 
 		self.void_classes = [0, 1, 2, 3, 4, 5, 10, 14, 15, 16, -1]
 		self.valid_classes = [7, 11, 17, 21, 23, 24, 26, 31]
-		self.class_names = ['unlabelled', 'road', 'building', \
-							'pole', 'vegetation', 'sky', 'person', 'car', 'train', ]
+		self.cls_class_names = ['background', 'pole', 'person', 'car', 'train']
 
 		self.ignore_index = 255
 		self.NUM_CLASSES = len(self.valid_classes)
@@ -30,8 +29,8 @@ class RoadAnomalyProposalsDataset(data.Dataset):
 		print("Found {} images".format(60))
 
 		# proposal, mask feature and sseg feature folder
-		self.proposal_folder = '/scratch/yli44/detectron2/my_projects/Bayesian_MaskRCNN/generated_proposals/roadAnomaly'
-		self.mask_ft_folder  = '/scratch/yli44/detectron2/my_projects/Bayesian_MaskRCNN/proposal_mask_features/roadAnomaly'
+		self.proposal_folder = '/scratch/yli44/detectron2/my_projects/Bayesian_MaskRCNN/generated_proposals_whole/roadAnomaly'
+		self.mask_ft_folder  = '/scratch/yli44/detectron2/my_projects/Bayesian_MaskRCNN/whole_features/roadAnomaly'
 		self.sseg_ft_folder  = '/projects/kosecka/yimeng/Datasets/RoadAnomaly/deeplab_ft_8_classes/'
 
 	def __len__(self):
