@@ -21,9 +21,9 @@ class LostAndFoundProposalsDataset(data.Dataset):
 		self.data_json_file = json.load(open('{}/{}_data_annotation.json'.format(self.dataset_dir, 'Lost_and_Found')))
 
 		self.void_classes = [0, 1, 2, 3, 4, 5, 10, 14, 15, 16, -1]
-		self.valid_classes = [7, 11, 17, 21, 23, 24, 26, 31]
-		self.class_names = ['unlabelled', 'road', 'building', \
-							'pole', 'vegetation', 'sky', 'person', 'car', 'train', ]
+		self.valid_classes = [7, 17, 24, 25, 26, 27, 28, 31, 32, 33]
+		self.cls_class_names = ['background', 'pole', 'person', 'rider', 'car', 'truck', 'bus', 'train', 'motorcycle', 'bicycle']
+
 
 		self.ignore_index = 255
 		self.NUM_CLASSES = len(self.valid_classes)
@@ -32,8 +32,8 @@ class LostAndFoundProposalsDataset(data.Dataset):
 		print("Found {} images".format(len(self.data_json_file)))
 
 		# proposal, mask feature and sseg feature folder
-		self.proposal_folder = '/scratch/yli44/detectron2/my_projects/Bayesian_MaskRCNN/generated_proposals/lostAndFound'
-		self.mask_ft_folder  = '/scratch/yli44/detectron2/my_projects/Bayesian_MaskRCNN/proposal_mask_features/lostAndFound'
+		self.proposal_folder = '/scratch/yli44/detectron2/my_projects/Bayesian_MaskRCNN/generated_proposals_whole/lostAndFound'
+		self.mask_ft_folder  = '/scratch/yli44/detectron2/my_projects/Bayesian_MaskRCNN/whole_features/lostAndFound'
 		self.sseg_ft_folder  = '/projects/kosecka/yimeng/Datasets/Lost_and_Found/deeplab_ft_8_classes'
 
 	def __len__(self):
