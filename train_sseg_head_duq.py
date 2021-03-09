@@ -9,9 +9,9 @@ from metrics import Evaluator
 from loss import BinaryCrossEntropyLoss
 
 BATCH_SIZE = 64
-rep_style = 'SSeg' #'both', 'ObjDet', 'SSeg'
-saved_folder = 'trained_model/all_props/duq/{}'.format(rep_style)
-duq_l_gradient_penalty = 0.1
+rep_style = 'ObjDet' #'both', 'ObjDet', 'SSeg'
+saved_folder = 'trained_model/prop_sseg_regular_cityscapes/duq/{}'.format(rep_style)
+duq_l_gradient_penalty = 0.0
 
 print('saved_folder = {}'.format(saved_folder))
 
