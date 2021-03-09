@@ -15,8 +15,8 @@ from scipy.special import softmax
 import cv2
 
 style = 'duq'
-dataset = 'roadAnomaly' #'lostAndFound', 'cityscapes', 'fishyscapes', 'roadAnomaly'
-rep_style = 'SSeg' #'both', 'ObjDet', 'SSeg' 
+dataset = 'lostAndFound' #'lostAndFound', 'cityscapes', 'fishyscapes', 'roadAnomaly'
+rep_style = 'ObjDet' #'both', 'ObjDet', 'SSeg' 
 save_option = 'image' #'image', 'npy'
 ignore_background_uncertainty = False
 ignore_boundary_uncertainty = False
@@ -28,9 +28,9 @@ thresh_mask_obj = 0.3
 
 print('style = {}, rep_style = {},  dataset = {}'.format(style, rep_style, dataset))
 
-base_folder = 'visualization/prop_cls_more_class'
+base_folder = 'visualization/prop_cls_more_class_maskrcnn_duq'
 saved_folder = '{}/obj_sseg_{}/{}/{}'.format(base_folder, style, rep_style, dataset)
-cls_model_dir = 'trained_model/prop_cls_more_class/{}/{}'.format(style, rep_style)
+cls_model_dir = 'trained_model/prop_cls_more_class_maskrcnn_duq/{}/{}'.format(style, rep_style)
 
 # check if folder exists
 if not os.path.exists('{}/obj_sseg_{}'.format(base_folder, style)):

@@ -33,7 +33,7 @@ class LostAndFoundProposalsDataset(data.Dataset):
 
 		# proposal, mask feature and sseg feature folder
 		self.proposal_folder = '/scratch/yli44/detectron2/my_projects/Bayesian_MaskRCNN/generated_proposals_whole/lostAndFound'
-		self.mask_ft_folder  = '/scratch/yli44/detectron2/my_projects/Bayesian_MaskRCNN/whole_features/lostAndFound'
+		self.mask_ft_folder  = '/scratch/yli44/detectron2/my_projects/Bayesian_MaskRCNN/whole_features_duq/lostAndFound'
 		self.sseg_ft_folder  = '/projects/kosecka/yimeng/Datasets/Lost_and_Found/deeplab_ft_8_classes'
 
 	def __len__(self):

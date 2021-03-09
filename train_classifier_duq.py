@@ -9,7 +9,7 @@ from loss import BinaryCrossEntropyLoss
 
 BATCH_SIZE = 64
 rep_style = 'ObjDet' #'both', 'ObjDet', 'SSeg'
-saved_folder = 'trained_model/prop_cls_more_class/duq/{}'.format(rep_style)
+saved_folder = 'trained_model/prop_cls_more_class_maskrcnn_duq/duq/{}'.format(rep_style)
 duq_l_gradient_penalty = 0.0
 
 print('saved_folder = {}'.format(saved_folder))
