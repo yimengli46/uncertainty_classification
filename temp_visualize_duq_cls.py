@@ -16,7 +16,7 @@ import cv2
 
 style = 'duq'
 dataset = 'roadAnomaly' #'lostAndFound', 'cityscapes', 'fishyscapes', 'roadAnomaly'
-rep_style = 'SSeg' #'both', 'ObjDet', 'SSeg' 
+rep_style = 'ObjDet' #'both', 'ObjDet', 'SSeg' 
 save_option = 'image' #'image', 'npy'
 ignore_background_uncertainty = False
 ignore_boundary_uncertainty = False
@@ -76,6 +76,8 @@ if dataset == 'lostAndFound':
 else: 
 	img_id_list = list(range(len(ds_val)))
 
+img_id_list = [6]
+
 with torch.no_grad():
 	for i in img_id_list:
 		if dataset == 'cityscapes':
@@ -83,7 +85,7 @@ with torch.no_grad():
 		elif dataset == 'lostAndFound':
 			num_proposals = ds_val.get_num_proposal(i) #+ 5
 		elif dataset == 'roadAnomaly':
-			num_proposals = 5
+			num_proposals = 20
 		
 		for j in range(num_proposals):
 			#if dataset == 'roadAnomaly':

@@ -40,8 +40,8 @@ class CityscapesAllClassesClassificationDataset(data.Dataset):
 			sampling_ratio=0)
 
 		# proposal, mask feature and sseg feature folder
-		self.proposal_folder = '/scratch/yli44/detectron2/my_projects/Bayesian_MaskRCNN/generated_proposals_regular_cityscapes/cityscapes_{}'.format(self.mode)
-		self.mask_ft_folder  = '/scratch/yli44/detectron2/my_projects/Bayesian_MaskRCNN/whole_features/cityscapes_{}'.format(self.mode)
+		self.proposal_folder = '/scratch/yli44/detectron2/my_projects/Bayesian_MaskRCNN/generated_proposals_whole/cityscapes_{}'.format(self.mode)
+		self.mask_ft_folder  = '/scratch/yli44/detectron2/my_projects/Bayesian_MaskRCNN/whole_features_regular_cityscapes/cityscapes_{}'.format(self.mode)
 		self.sseg_ft_folder  = '/projects/kosecka/yimeng/Datasets/Cityscapes/deeplab_ft_8_classes/{}'.format(self.mode)
 
 

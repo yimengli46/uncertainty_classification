@@ -24,6 +24,8 @@
 
 #SBATCH --gres=gpu:1
 
+#SBATCH --deadline=0312
+
 ## Load the relevant modules needed for the job
 module load python/3.6.7
 module load cuda/10.1
