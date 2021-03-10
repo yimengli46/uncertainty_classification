@@ -71,6 +71,7 @@ class DropoutHead(nn.Module):
 		x = self.predictor(x)
 		return x
 
+'''
 class DuqHead(nn.Module):
 	def __init__(self, num_classes=8, input_dim=512):
 		super(DuqHead, self).__init__()
@@ -156,6 +157,101 @@ class DuqHead(nn.Module):
 
 		#print('x.shape = {}'.format(x.shape))
 		x = x.view(x.size(0),-1)
+		#print('x.shape = {}'.format(x.shape))
+		x = self.fc(x)
+
+		z = x
+
+		z = torch.einsum('ij,mnj->imn', z, self.W)
+		embedding_sum = torch.einsum('ijk,ik->jk', z, y_targets)
+
+		self.m = self.gamma * self.m + (1 - self.gamma) * embedding_sum
+'''
+
+class DuqHead(nn.Module):
+	def __init__(self, num_classes=8, input_dim=512):
+		super(DuqHead, self).__init__()
+		self.num_classes = num_classes
+
+		self.conv1 = nn.Conv2d(input_dim, 256, 3, padding=1)
+		self.bn1 = nn.BatchNorm2d(256)
+		self.conv2 = nn.Conv2d(256, 256, 3, padding=1)
+		self.bn2 = nn.BatchNorm2d(256)
+		self.conv3 = nn.Conv2d(256, 256, 3, padding=1)
+		self.bn3 = nn.BatchNorm2d(256)
+		self.conv4 = nn.Conv2d(256, 256, 3, padding=1)
+		self.bn4 = nn.BatchNorm2d(256)
+		self.deconv = nn.ConvTranspose2d(256, 256, 2, stride=2, padding=0)
+
+		self.fc = nn.Linear(1024, 256)
+		
+		#==========================================================================================================
+		self.duq_centroid_size = 512
+		self.duq_model_output_size = 256
+		self.gamma = 0.999
+		self.duq_length_scale = 0.1
+
+		self.W = nn.Parameter(torch.zeros(self.duq_centroid_size, self.num_classes, self.duq_model_output_size))
+		nn.init.kaiming_normal_(self.W, nonlinearity='relu')
+		self.register_buffer('N', torch.ones(self.num_classes)*20)
+		self.register_buffer('m', torch.normal(torch.zeros(self.duq_centroid_size, self.num_classes), 0.05))
+		self.m = self.m *self.N
+		self.sigma = self.duq_length_scale
+
+	def rbf(self, z):
+		z = torch.einsum('ij,mnj->imn', z, self.W)
+		embeddings = self.m / self.N.unsqueeze(0)
+		diff = z - embeddings.unsqueeze(0)
+		diff = (diff ** 2).mean(1).div(2 * self.sigma **2).mul(-1).exp()
+		return diff
+
+	def forward(self, x, mask):
+		x = F.relu(self.bn1(self.conv1(x)))
+		x = F.relu(self.bn2(self.conv2(x)))
+		x = F.relu(self.bn3(self.conv3(x)))
+		x = F.relu(self.bn4(self.conv4(x)))
+		x = self.deconv(x) # B x 256 x 28 x 28
+
+		# put through mask
+		B, C, H, W = x.shape
+		mask = mask.unsqueeze(1).repeat(1, C, 1, 1) # B*H*W -> B*1*H*W -> B*C*H*W
+		block_value = x.min()  # min values of whole tensor [B*C*H*W]
+		x = torch.where(mask < 1, block_value, x)
+		x = F.max_pool2d(x, [14, 14]) # 64 x 256 x 2 x 2
+
+		#print('x.shape = {}'.format(x.shape))
+		x = x.view(x.size(0),-1) # 64 x 1024
+		#print('x.shape = {}'.format(x.shape))
+		x = self.fc(x)
+
+		z = x
+
+		y_pred = self.rbf(z) # 64 x 5
+		#print('y_pred.shape = {}'.format(y_pred.shape))
+		
+		return y_pred
+
+	def update_embeddings(self, x, mask, y_targets):
+		
+		y_targets = F.one_hot(y_targets, self.num_classes).float()
+
+		self.N = self.gamma * self.N + (1-self.gamma) * y_targets.sum(0)
+
+		x = F.relu(self.bn1(self.conv1(x)))
+		x = F.relu(self.bn2(self.conv2(x)))
+		x = F.relu(self.bn3(self.conv3(x)))
+		x = F.relu(self.bn4(self.conv4(x)))
+		x = self.deconv(x) # B x 256 x 28 x 28
+
+		# put through mask
+		B, C, H, W = x.shape
+		mask = mask.unsqueeze(1).repeat(1, C, 1, 1) # B*H*W -> B*1*H*W -> B*C*H*W
+		block_value = x.min()  # min values of whole tensor [B*C*H*W]
+		x = torch.where(mask < 1, block_value, x)
+		x = F.max_pool2d(x, [14, 14]) # 64 x 256 x 2 x 2
+
+		#print('x.shape = {}'.format(x.shape))
+		x = x.view(x.size(0),-1) # 64 x 1024
 		#print('x.shape = {}'.format(x.shape))
 		x = self.fc(x)
 

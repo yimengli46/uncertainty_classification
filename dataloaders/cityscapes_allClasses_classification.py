@@ -26,7 +26,7 @@ class CityscapesAllClassesClassificationDataset(data.Dataset):
 
 		self.void_classes = [0, 1, 2, 3, 4, 5, 10, 14, 15, 16, -1]
 		self.valid_classes = [7, 17, 24, 25, 26, 27, 28, 31, 32, 33]
-		self.class_names = ['background', 'pole', 'person', 'rider', 'car', 'truck', 'bus', 'train', 'motorcycle', 'bicycle']
+		self.cls_class_names = ['background', 'pole', 'person', 'rider', 'car', 'truck', 'bus', 'train', 'motorcycle', 'bicycle']
 
 		self.ignore_index = 255
 		self.NUM_CLASSES = len(self.valid_classes)
@@ -40,9 +40,9 @@ class CityscapesAllClassesClassificationDataset(data.Dataset):
 			sampling_ratio=0)
 
 		# proposal, mask feature and sseg feature folder
-		self.proposal_folder = '/scratch/yli44/detectron2/my_projects/Bayesian_MaskRCNN/generated_proposals_whole/cityscapes_{}'.format(self.mode)
-		self.mask_ft_folder  = '/scratch/yli44/detectron2/my_projects/Bayesian_MaskRCNN/whole_features_regular_cityscapes/cityscapes_{}'.format(self.mode)
-		self.sseg_ft_folder  = '/projects/kosecka/yimeng/Datasets/Cityscapes/deeplab_ft_8_classes/{}'.format(self.mode)
+		self.proposal_folder = '/home/yimeng/ARGO_scratch/detectron2/my_projects/Bayesian_MaskRCNN/generated_proposals_whole/cityscapes_{}'.format(self.mode)
+		self.mask_ft_folder  = '/home/yimeng/ARGO_scratch/detectron2/my_projects/Bayesian_MaskRCNN/whole_features_cityscapes_dropout/cityscapes_{}'.format(self.mode)
+		self.sseg_ft_folder  = '/home/yimeng/ARGO_datasets/Cityscapes/deeplab_ft_8_classes/{}'.format(self.mode)
 
 
 	def __len__(self):
@@ -206,6 +206,100 @@ class CityscapesAllClassesClassificationDataset(data.Dataset):
 		label = np.argmax(num_pixel2label)
 		mask = (sseg_label == label)
 		return mask, label
+
+
+	def get_top_proposals(self, i, top_n=100):
+		img_path = '{}/{}'.format(self.dataset_dir, self.img_list[i]['left_img'])
+		lbl_path = '{}/{}'.format(self.dataset_dir, self.img_list[i]['semSeg'])
+
+		rgb_img = np.array(Image.open(img_path).convert('RGB'))
+		H, W, _ = rgb_img.shape
+		sseg_label = np.array(Image.open(lbl_path), dtype=np.uint8)
+		sseg_label = self.encode_segmap(sseg_label) # 1024 x 2048
+		
+		# read proposals
+		proposal_results = np.load('{}/{}_proposal.npy'.format(self.proposal_folder, i), allow_pickle=True).item()
+		img_proposals, feature_proposals = self.read_proposals(proposal_results, H, W)
+		#print('img_proposals = {}'.format(img_proposals))
+
+		# read mask features
+		whole_feature = np.load('{}/{}_whole_features.npy'.format(self.mask_ft_folder, i), allow_pickle=True).item()
+		# 'p6' is not used 
+		obj_feature = [torch.tensor(whole_feature[k]).to(device) for k in ['p2', 'p3', 'p4', 'p5']]
+
+		#print('obj_feature.shape = {}'.format(obj_feature.shape))
+		# read sseg features
+		sseg_feature = np.load('{}/{}_deeplab_ft.npy'.format(self.sseg_ft_folder, i), allow_pickle=True) # 256 x 128 x 256
+		#print('sseg_feature.shape = {}'.format(sseg_feature.shape))
+		sseg_feature = torch.tensor(sseg_feature).unsqueeze(0).to(device) # 1 x 256 x 128 x 256
+
+		N, _ = img_proposals.shape
+		# testing stage only pick from the top 100
+
+		index = np.array([x for x in range(top_n)])
+		img_proposals = img_proposals[index] # B x 4
+		feature_proposals = feature_proposals[index]
+
+		sseg_mask = torch.zeros((top_n, 28, 28), dtype=torch.bool)
+		class_label = torch.zeros((top_n))
+		batch_prop_boxes = torch.tensor(img_proposals).to(device)
+		batch_feature_prop_boxes = torch.tensor(feature_proposals).to(device)
+
+		for j in range(top_n):
+			x1, y1, x2, y2 = img_proposals[j]
+
+			prop_x1 = int(round(x1))
+			prop_y1 = int(round(y1))
+			prop_x2 = int(round(x2))
+			prop_y2 = int(round(y2))
+
+			img_patch = rgb_img[prop_y1:prop_y2, prop_x1:prop_x2]
+			sseg_label_patch = sseg_label[prop_y1:prop_y2, prop_x1:prop_x2]
+
+			# rescale sseg label to 28x28
+			sseg_label_patch = cv2.resize(sseg_label_patch, (28, 28), interpolation=cv2.INTER_NEAREST) # 28 x 28
+			#print('sseg_label_patch.shape = {}'.format(sseg_label_patch.shape))
+			patch_mask, patch_label = self.gen_mask_and_label(sseg_label_patch)
+
+			'''
+			# visualize for test
+			print('patch_label = {}'.format(self.class_names[patch_label]))
+			fig, ax = plt.subplots(nrows=1, ncols=3, figsize=(15,5))
+			ax[0].imshow(img_patch)
+			ax[0].get_xaxis().set_visible(False)
+			ax[0].get_yaxis().set_visible(False)
+			ax[0].set_title("rgb image")
+			ax[1].imshow(sseg_label_patch, vmin=0.0, vmax=10.0)
+			ax[1].get_xaxis().set_visible(False)
+			ax[1].get_yaxis().set_visible(False)
+			ax[1].set_title("sseg label")
+			ax[2].imshow(patch_mask, vmin=0.0, vmax=1.0)
+			ax[2].get_xaxis().set_visible(False)
+			ax[2].get_yaxis().set_visible(False)
+			ax[2].set_title("sseg mask")
+			plt.show()
+			'''
+
+			sseg_mask[j] = torch.tensor(patch_mask)
+			class_label[j] = torch.tensor(patch_label)
+
+		#print('batch_prop_boxes = {}'.format(batch_prop_boxes))
+		batch_sseg_feature = roi_align(sseg_feature, [batch_prop_boxes], output_size=(14, 14), spatial_scale=1/8.0, aligned=True)
+		batch_obj_feature  = self.pooler(obj_feature, [batch_feature_prop_boxes])
+		#print('batch_obj_feature.shape = {}'.format(batch_obj_feature.shape))
+		#print('batch_obj_feature = {}'.format(batch_obj_feature))
+		#print('batch_sseg_feature.shape = {}'.format(batch_sseg_feature.shape))
+
+		if self.rep_style == 'both':
+			patch_feature = torch.cat((batch_obj_feature, batch_sseg_feature), dim=1) # B x 512 x 14 x 14
+		elif self.rep_style == 'ObjDet':
+			patch_feature = batch_obj_feature
+		elif self.rep_style == 'SSeg':
+			patch_feature = batch_sseg_feature 
+		#print('patch_feature.shape = {}'.format(patch_feature.shape))
+
+		return patch_feature, sseg_mask, class_label
+		#assert 1==2
 
 '''
 cityscapes_train = CityscapesAllClassesClassificationDataset('/home/yimeng/ARGO_datasets/Cityscapes', 'train', batch_size=20)

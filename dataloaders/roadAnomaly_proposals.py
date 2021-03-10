@@ -29,9 +29,9 @@ class RoadAnomalyProposalsDataset(data.Dataset):
 		print("Found {} images".format(60))
 
 		# proposal, mask feature and sseg feature folder
-		self.proposal_folder = '/scratch/yli44/detectron2/my_projects/Bayesian_MaskRCNN/generated_proposals_whole/roadAnomaly'
-		self.mask_ft_folder  = '/scratch/yli44/detectron2/my_projects/Bayesian_MaskRCNN/whole_features/roadAnomaly'
-		self.sseg_ft_folder  = '/projects/kosecka/yimeng/Datasets/RoadAnomaly/deeplab_ft_8_classes/'
+		self.proposal_folder = '/home/yimeng/ARGO_scratch/detectron2/my_projects/Bayesian_MaskRCNN/generated_proposals_whole/roadAnomaly'
+		self.mask_ft_folder  = '/home/yimeng/ARGO_scratch/detectron2/my_projects/Bayesian_MaskRCNN/whole_features_cityscapes_dropout/roadAnomaly'
+		self.sseg_ft_folder  = '/home/yimeng/ARGO_datasets/RoadAnomaly/deeplab_ft_8_classes/'
 
 	def __len__(self):
 		return 60

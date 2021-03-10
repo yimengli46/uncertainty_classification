@@ -3,3 +3,4 @@ trained_model/
 visualization/
 classification_label_mask/
 gen_object_mask/
+cls_results/

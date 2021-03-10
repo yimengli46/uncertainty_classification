@@ -4,7 +4,6 @@ import torch
 import torch.nn as nn
 import matplotlib.pyplot as plt
 from classifier_model import DuqHead as cls_duq
-from dataloaders.cityscapes_proposals import CityscapesProposalsDataset
 from dataloaders.lostAndFound_proposals import LostAndFoundProposalsDataset
 from dataloaders.fishyscapes_proposals import FishyscapesProposalsDataset
 from dataloaders.roadAnomaly_proposals import RoadAnomalyProposalsDataset
@@ -14,10 +13,12 @@ from scipy.stats import entropy
 from scipy.special import softmax
 import cv2
 
+trained_classes = 10
+
 style = 'duq'
-dataset = 'roadAnomaly' #'lostAndFound', 'cityscapes', 'fishyscapes', 'roadAnomaly'
+dataset = 'lostAndFound' #'lostAndFound', 'cityscapes', 'fishyscapes', 'roadAnomaly'
 rep_style = 'ObjDet' #'both', 'ObjDet', 'SSeg' 
-save_option = 'image' #'image', 'npy'
+save_option = 'npy' #'image', 'npy'
 ignore_background_uncertainty = False
 ignore_boundary_uncertainty = False
 
@@ -28,9 +29,11 @@ thresh_mask_obj = 0.3
 
 print('style = {}, rep_style = {},  dataset = {}'.format(style, rep_style, dataset))
 
-base_folder = 'visualization/prop_cls_more_class_old'
+base_folder = 'cls_results/prop_cls_more_class_old'
+#base_folder = 'cls_results/prop_classification'
 saved_folder = '{}/obj_sseg_{}/{}/{}'.format(base_folder, style, rep_style, dataset)
 cls_model_dir = 'trained_model/prop_cls_more_class_old/{}/{}'.format(style, rep_style)
+#cls_model_dir = 'trained_model/prop_classification/{}/{}'.format(style, rep_style)
 
 # check if folder exists
 if not os.path.exists('{}/obj_sseg_{}'.format(base_folder, style)):
@@ -40,10 +43,8 @@ if not os.path.exists('{}/obj_sseg_{}/{}'.format(base_folder, style, rep_style))
 if not os.path.exists(saved_folder): 
 	os.mkdir(saved_folder)
 
-if dataset == 'cityscapes':
-	dataset_folder = '/home/yimeng/ARGO_datasets/Cityscapes'
-	ds_val = CityscapesProposalsDataset(dataset_folder, 'val', rep_style=rep_style)
-elif dataset == 'lostAndFound':
+
+if dataset == 'lostAndFound':
 	dataset_folder = '/home/yimeng/ARGO_datasets/Lost_and_Found'
 	ds_val = LostAndFoundProposalsDataset(dataset_folder, rep_style=rep_style)
 elif dataset == 'fishyscapes':
@@ -52,8 +53,9 @@ elif dataset == 'fishyscapes':
 elif dataset == 'roadAnomaly':
 	dataset_folder = '/home/yimeng/ARGO_datasets/RoadAnomaly'
 	ds_val = RoadAnomalyProposalsDataset(dataset_folder, rep_style=rep_style)
-num_classes = ds_val.NUM_CLASSES
+num_classes = trained_classes
 cls_class_names = ds_val.cls_class_names
+
 
 if rep_style == 'both':
 	input_dim = 512
@@ -80,14 +82,18 @@ else:
 
 with torch.no_grad():
 	for i in img_id_list:
-		if dataset == 'cityscapes':
-			num_proposals = 5
-		elif dataset == 'lostAndFound':
+		print('i = {}'.format(i))
+		if dataset == 'lostAndFound':
 			num_proposals = ds_val.get_num_proposal(i) #+ 5
 		elif dataset == 'roadAnomaly':
-			num_proposals = 5
+			num_proposals = 20
+
+		cls_pred_list = np.zeros(num_proposals)
+		cls_uncertainty_list = np.zeros(num_proposals)
+		cls_label = np.ones(num_proposals) * (-1)
 		
 		for j in range(num_proposals):
+			#print('j = {}'.format(j))
 			#if dataset == 'roadAnomaly':
 			patch_feature, batch_sseg_label, img_proposal, sseg_label_proposal = ds_val.get_proposal(i, j)
 			#else:
@@ -115,50 +121,24 @@ with torch.no_grad():
 			cls_logits = cls_head(patch_feature, tensor_mask_obj)
 			# ignore uncertainty on the background class
 
-			cls_logits = cls_logits.cpu().numpy()[0, [2,3,4,5,6,7,8,9]]
+			if trained_classes > 5:
+				cls_logits = cls_logits.cpu().numpy()[0, [2,3,4,5,6,7,8,9]]
+			elif trained_classes == 5:
+				cls_logits = cls_logits.cpu().numpy()[0, [1,2,3,4]]
 			cls_pred = np.argmax(cls_logits)
 			cls_uncertainty = 1 - cls_logits[cls_pred]
 			#assert 1==2
 
-			mask_obj = cv2.resize(mask_obj.astype(np.uint8), (W, H), interpolation=cv2.INTER_NEAREST)
-			if dataset == 'cityscapes':
-				color_sseg_label_proposal = apply_color_map(sseg_label_proposal)
-			else:
-				color_sseg_label_proposal = sseg_label_proposal
-			color_sseg_pred = apply_color_map(sseg_pred)
+			cls_pred_list[j] = cls_pred
+			cls_uncertainty_list[j] = cls_uncertainty
+
+		if save_option == 'both' or save_option == 'npy':
+
+			result = {}
+			result['pred'] = cls_pred_list.astype('int')
+			result['uncertainty'] = cls_uncertainty_list
+			result['label'] = cls_label.astype('int')
+			np.save('{}/img_{}.npy'.format(saved_folder, i), result)
+
 			#assert 1==2
-
-			if save_option == 'both' or save_option == 'image':
-				fig, ax = plt.subplots(nrows=2, ncols=2, figsize=(18,10))
-				ax[0][0].imshow(img_proposal)
-				ax[0][0].get_xaxis().set_visible(False)
-				ax[0][0].get_yaxis().set_visible(False)
-				ax[0][0].set_title("rgb proposal")
-				ax[0][1].imshow(color_sseg_label_proposal)
-				ax[0][1].get_xaxis().set_visible(False)
-				ax[0][1].get_yaxis().set_visible(False)
-				ax[0][1].set_title("sseg_label_proposal")
-				ax[1][0].imshow(uncertainty, vmin=0.0, vmax=1.0)
-				ax[1][0].get_xaxis().set_visible(False)
-				ax[1][0].get_yaxis().set_visible(False)
-				ax[1][0].set_title("uncertainty")
-				ax[1][1].imshow(mask_obj)
-				ax[1][1].get_xaxis().set_visible(False)
-				ax[1][1].get_yaxis().set_visible(False)
-				ax[1][1].set_title("class= {}, uncertainty = {:.4f}".format(cls_class_names[cls_pred+2], \
-					cls_uncertainty))
-
-				fig.tight_layout()
-				#plt.show()
-				fig.savefig('{}/img_{}_proposal_{}.jpg'.format(saved_folder, i, j))
-				plt.close()
-
-			if save_option == 'both' or save_option == 'npy':
-
-				result = {}
-				result['sseg'] = sseg_pred
-				result['uncertainty'] = uncertainty
-				np.save('{}/img_{}_proposal_{}.npy'.format(saved_folder, i, j), result)
-
-				#assert 1==2
 

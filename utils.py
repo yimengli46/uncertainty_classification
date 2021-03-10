@@ -57,3 +57,22 @@ def gen_mask(sseg_pred, num_classes=8):
 	object_mask = np.where(sseg_pred == 7, True, object_mask) # train
 
 	return object_mask
+
+
+def convert_pred_and_label(mask):
+	mask[mask == 3] = 2 # rider -> person
+	mask[mask == 8] = 2 # motorcycle -> person
+	mask[mask == 9] = 2 # bicycle -> person
+	mask[mask == 5] = 4 # truck -> car
+	mask[mask == 6] = 4 # bus -> car
+	return mask
+
+def convert_pred_and_label_sseg(mask):
+	mask[mask == 3] = 2 # rider -> person
+	mask[mask == 8] = 2 # motorcycle -> person
+	mask[mask == 9] = 2 # bicycle -> person
+	mask[mask == 5] = 3 # truck -> car
+	mask[mask == 6] = 3 # bus -> car
+	mask[mask == 4] = 3 # car -> car
+	mask[mask == 7] = 4 # train -> train 
+	return mask
