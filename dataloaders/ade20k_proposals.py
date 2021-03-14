@@ -40,6 +40,7 @@ class ADE20KProposalsDataset(data.Dataset):
 		# proposal, mask feature and sseg feature folder
 		self.proposal_folder = '/scratch/yli44/detectron2/my_projects/Bayesian_MaskRCNN/generated_proposals_ADE20K/ADE20K_{}'.format(self.mode)
 		self.mask_ft_folder  = '/scratch/yli44/detectron2/my_projects/Bayesian_MaskRCNN/proposal_mask_features_ADE20K/ADE20K_{}'.format(self.mode)
+		self.sseg_ft_folder  = '/projects/kosecka/yimeng/Datasets/ADE20K/Semantic_Segmentation/deeplab_ft//{}'.format(self.mode)
 
 	def __len__(self):
 		return len(self.img_list)
@@ -59,6 +60,10 @@ class ADE20KProposalsDataset(data.Dataset):
 		# read mask features
 		mask_feature = np.load('{}/{}_proposal_mask_features.npy'.format(self.mask_ft_folder, i), allow_pickle=True)
 		#print('mask_feature.shape = {}'.format(mask_feature.shape))
+		#assert 1==2
+		sseg_feature = np.load('{}/{}_deeplab_ft.npy'.format(self.sseg_ft_folder, i), allow_pickle=True) # 256 x 128 x 256
+		#print('sseg_feature.shape = {}'.format(sseg_feature.shape))
+		sseg_feature = torch.tensor(sseg_feature).unsqueeze(0).to(device) # 1 x 256 x 128 x 256
 
 		index = np.random.choice(30, self.batch_size, replace=False)
 		#index = np.array([0,1,2])
@@ -68,9 +73,9 @@ class ADE20KProposalsDataset(data.Dataset):
 		#print('proposals.shape = {}'.format(proposals.shape))
 		#print('mask_feature.shape = {}'.format(mask_feature.shape))
 
-		#batch_sseg_feature = torch.zeros((self.batch_size, 256, 14, 14))
+		batch_sseg_feature = torch.zeros((self.batch_size, 256, 14, 14))
 		batch_sseg_label = torch.zeros((self.batch_size, 28, 28))
-		batch_prop_boxes = torch.zeros((self.batch_size, 4)) 
+		batch_prop_boxes = torch.zeros((self.batch_size, 4)).to(device)
 
 		for j in range(self.batch_size):
 			x1, y1, x2, y2 = proposals[j]
@@ -122,8 +127,15 @@ class ADE20KProposalsDataset(data.Dataset):
 			#print('sseg_label_patch.shape = {}'.format(sseg_label_patch.shape))
 			batch_sseg_label[j] = torch.tensor(sseg_label_patch)
 
-		if self.rep_style == 'ObjDet':
-			patch_feature = mask_feature
+		batch_sseg_feature = roi_align(sseg_feature, [batch_prop_boxes], output_size=(14, 14), spatial_scale=1/4.0, aligned=True)
+		batch_obj_feature = mask_feature
+
+		if self.rep_style == 'both':
+			patch_feature = torch.cat((batch_obj_feature, batch_sseg_feature), dim=1) # B x 512 x 14 x 14
+		elif self.rep_style == 'ObjDet':
+			patch_feature = batch_obj_feature
+		elif self.rep_style == 'SSeg':
+			patch_feature = batch_sseg_feature 
 
 		#print('patch_feature.shape = {}'.format(patch_feature.shape))
 

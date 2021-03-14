@@ -9,7 +9,7 @@ from metrics import Evaluator
 from loss import BinaryCrossEntropyLoss
 
 BATCH_SIZE = 24
-rep_style = 'ObjDet' #'both', 'ObjDet', 'SSeg'
+rep_style = 'both' #'both', 'ObjDet', 'SSeg'
 style = 'duq'
 saved_folder = 'trained_model/ade20k/{}/{}'.format(style, rep_style)
 
