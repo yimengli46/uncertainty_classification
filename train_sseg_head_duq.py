@@ -9,7 +9,7 @@ from metrics import Evaluator
 from loss import BinaryCrossEntropyLoss
 
 BATCH_SIZE = 24
-rep_style = 'both' #'both', 'ObjDet', 'SSeg'
+rep_style = 'ObjDet' #'both', 'ObjDet', 'SSeg'
 style = 'duq'
 saved_folder = 'trained_model/ade20k/{}/{}'.format(style, rep_style)
 
@@ -25,6 +25,7 @@ else:
 dataset_folder = '/projects/kosecka/yimeng/Datasets/ADE20K/Semantic_Segmentation'
 ds_train = ADE20KProposalsDataset(dataset_folder, 'train', batch_size=BATCH_SIZE, rep_style=rep_style)
 num_classes = ds_train.NUM_CLASSES
+print('num_classes = {}'.format(num_classes))
 ds_val = ADE20KProposalsDataset(dataset_folder, 'val', batch_size=BATCH_SIZE, rep_style=rep_style)
 
 # # Classification

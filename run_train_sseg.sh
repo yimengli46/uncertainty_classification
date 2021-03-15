@@ -8,7 +8,7 @@
 ## Restricted: CDS_q, CS_q, STATS_q, HH_q, GA_q, ES_q, COS_q  (10 day limit)
 
 #SBATCH --partition=gpuq        # Default is all-HiPri
-#SBATCH --constraint=gpu-k80
+#SBATCH --constraint=gpu-v100
 
 ## Separate output and error messages into 2 files.
 ## NOTE: %u=userID, %x=jobName, %N=nodeID, %j=jobID, %A=arrayID, %a=arrayTaskID

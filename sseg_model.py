@@ -132,11 +132,12 @@ class DuqHead(nn.Module):
 		z = z.reshape(-1, C)
 
 		z = z[idx_unignored]
+		if z.shape[0] > 0:
 
-		z = torch.einsum('ij,mnj->imn', z, self.W)
-		embedding_sum = torch.einsum('ijk,ik->jk', z, y_targets)
+			z = torch.einsum('ij,mnj->imn', z, self.W)
+			embedding_sum = torch.einsum('ijk,ik->jk', z, y_targets)
 
-		self.m = self.gamma * self.m + (1 - self.gamma) * embedding_sum
+			self.m = self.gamma * self.m + (1 - self.gamma) * embedding_sum
 
 
 def calc_gradient_penalty(x, y_pred):
