@@ -34,7 +34,7 @@ print('style = {}, rep_style = {},  dataset = {}'.format(style, rep_style, datas
 base_folder = 'visualization/sseg_and_cls_all_props'
 saved_folder = '{}/obj_sseg_{}/{}/{}'.format(base_folder, style, rep_style, dataset)
 sseg_model_dir = 'trained_model/all_props/{}/{}'.format(style, rep_style)
-cls_model_dir = 'trained_model/prop_classification_old/{}/{}'.format(style, rep_style)
+cls_model_dir = 'trained_model/prop_classification/{}/{}'.format(style, rep_style)
 
 # check if folder exists
 if not os.path.exists('{}/obj_sseg_{}'.format(base_folder, style)):
@@ -87,12 +87,15 @@ with torch.no_grad():
 		if dataset == 'cityscapes':
 			num_proposals = 5
 		elif dataset == 'lostAndFound':
-			num_proposals = ds_val.get_num_proposal(i)
+			num_proposals = ds_val.get_num_proposal(i) + 5
 		elif dataset == 'roadAnomaly':
 			num_proposals = 5
 		
 		for j in range(num_proposals):
-			patch_feature, batch_sseg_label, img_proposal, sseg_label_proposal = ds_val.get_proposal(i, j)
+			if dataset == 'roadAnomaly':
+				patch_feature, batch_sseg_label, img_proposal, sseg_label_proposal = ds_val.get_proposal(i, j)
+			else:
+				patch_feature, batch_sseg_label, img_proposal, sseg_label_proposal = ds_val.get_all_proposals(i, j)
 			H, W = sseg_label_proposal.shape
 
 			patch_feature = patch_feature.to(device)

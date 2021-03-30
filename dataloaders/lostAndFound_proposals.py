@@ -33,8 +33,10 @@ class LostAndFoundProposalsDataset(data.Dataset):
 
 		# proposal, mask feature and sseg feature folder
 		self.proposal_folder = '/home/yimeng/ARGO_scratch/detectron2/my_projects/Bayesian_MaskRCNN/generated_proposals_whole/lostAndFound'
-		self.mask_ft_folder  = '/home/yimeng/ARGO_scratch/detectron2/my_projects/Bayesian_MaskRCNN/whole_features/lostAndFound'
+		self.mask_ft_folder  = '/home/yimeng/ARGO_scratch/detectron2/my_projects/Bayesian_MaskRCNN/whole_features_cityscapes_dropout/lostAndFound'
 		self.sseg_ft_folder  = '/home/yimeng/ARGO_datasets/Lost_and_Found/deeplab_ft_8_classes'
+
+		self.edgebox_proposals = np.load('/home/yimeng/ARGO_datasets/Lost_and_Found/edgebox_ood_props.npy', allow_pickle=True).item() 
 
 	def __len__(self):
 		return len(self.data_json_file)
@@ -125,5 +127,256 @@ class LostAndFoundProposalsDataset(data.Dataset):
 			patch_feature = batch_sseg_feature
 
 		#print('patch_feature.shape = {}'.format(patch_feature.shape))
+
+		return patch_feature, batch_sseg_label, img_proposal, sseg_label_proposal
+
+	def get_all_proposals(self, i, j=0, inlier_props=5):
+		img_path = '{}/{}.png'.format(self.dataset_dir, i)
+		lbl_path = '{}/{}_label.png'.format(self.dataset_dir, i)
+
+		rgb_img = np.array(Image.open(img_path).convert('RGB'))
+		sseg_label = np.array(Image.open(lbl_path), dtype=np.uint8)
+		#print('sseg_label.shape = {}'.format(sseg_label.shape))
+		
+		# read proposals
+		proposals = np.load('{}/{}_proposal.npy'.format(self.proposal_folder, i), allow_pickle=True)
+		num_outlier_props = proposals.shape[0]
+		regular_proposals = np.load('{}/{}_regular_proposal.npy'.format(self.proposal_folder, i),
+			allow_pickle=True) # 100 x 4
+		#print('regular_proposals.shape = {}'.format(regular_proposals.shape))
+		
+		proposals = np.concatenate((proposals, regular_proposals), axis=0)
+		# read mask features
+		mask_feature = np.load('{}/{}_proposal_mask_features.npy'.format(self.mask_ft_folder, i), allow_pickle=True)
+		regular_mask_feature = np.load('{}/{}_regular_proposal_mask_features.npy'.format(
+			self.mask_ft_folder, i), allow_pickle=True) # 100 x 256 x 14 x 14
+		mask_feature = np.concatenate((mask_feature, regular_mask_feature), axis=0)
+		#print('regular_mask_feature.shape = {}'.format(regular_mask_feature.shape))
+		#assert 1==2
+		# read sseg features
+		sseg_feature = np.load('{}/{}_deeplab_ft.npy'.format(self.sseg_ft_folder, i), allow_pickle=True) # 256 x 128 x 256
+		#print('sseg_feature.shape = {}'.format(sseg_feature.shape))
+
+		sseg_feature = torch.tensor(sseg_feature).unsqueeze(0).to(device) # 1 x 256 x 128 x 256
+
+		index = np.array([j])
+		proposals = proposals[index] # B x 4
+		mask_feature = torch.tensor(mask_feature[index]).to(device) # B x 256 x 14 x 14
+
+		batch_sseg_label = torch.zeros((1, 28, 28))
+		batch_prop_boxes = torch.zeros((1, 4))
+
+		x1, y1, x2, y2 = proposals[0]
+		prop_x1 = int(round(x1))
+		prop_y1 = int(round(y1))
+		prop_x2 = int(round(x2))
+		prop_y2 = int(round(y2))
+
+		img_proposal = rgb_img[prop_y1:prop_y2, prop_x1:prop_x2]
+		sseg_label_proposal = sseg_label[prop_y1:prop_y2, prop_x1:prop_x2]
+
+		batch_prop_boxes[0, 0] = prop_x1
+		batch_prop_boxes[0, 1] = prop_y1
+		batch_prop_boxes[0, 2] = prop_x2
+		batch_prop_boxes[0, 3] = prop_y2
+
+		# rescale sseg label to 28x28
+		sseg_label_patch = cv2.resize(sseg_label_proposal, (28, 28), interpolation=cv2.INTER_NEAREST) # 28 x 28
+		sseg_label_patch = sseg_label_patch.astype('int')
+		#print('sseg_label_patch = {}'.format(sseg_label_patch))
+		batch_sseg_label[0] = torch.tensor(sseg_label_patch)
+
+		batch_prop_boxes = batch_prop_boxes.to(device)
+		batch_sseg_feature = roi_align(sseg_feature, [batch_prop_boxes], output_size=(14, 14), spatial_scale=1/8.0, aligned=True)
+
+		if self.rep_style == 'both':
+			patch_feature = torch.cat((mask_feature, batch_sseg_feature), dim=1) # B x 512 x 14 x 14
+		elif self.rep_style == 'ObjDet':
+			patch_feature = mask_feature
+		elif self.rep_style == 'SSeg':
+			patch_feature = batch_sseg_feature
+
+		return patch_feature, batch_sseg_label, img_proposal, sseg_label_proposal
+
+	def get_regular_proposals(self, i, j=0, inlier_props=5):
+		img_path = '{}/{}.png'.format(self.dataset_dir, i)
+		lbl_path = '{}/{}_label.png'.format(self.dataset_dir, i)
+
+		rgb_img = np.array(Image.open(img_path).convert('RGB'))
+		sseg_label = np.array(Image.open(lbl_path), dtype=np.uint8)
+		#print('sseg_label.shape = {}'.format(sseg_label.shape))
+		
+		# read proposals
+		proposals = np.load('{}/{}_regular_proposal.npy'.format(self.proposal_folder, i),
+			allow_pickle=True) # 100 x 4
+		#print('proposals.shape = {}'.format(proposals.shape))
+		#assert 1==2
+
+		# read mask features
+		mask_feature = np.load('{}/{}_regular_proposal_mask_features.npy'.format(
+			self.mask_ft_folder, i), allow_pickle=True) # 100 x 256 x 14 x 14
+
+		# read sseg features
+		sseg_feature = np.load('{}/{}_deeplab_ft.npy'.format(self.sseg_ft_folder, i), allow_pickle=True) # 256 x 128 x 256
+		#print('sseg_feature.shape = {}'.format(sseg_feature.shape))
+
+		sseg_feature = torch.tensor(sseg_feature).unsqueeze(0).to(device) # 1 x 256 x 128 x 256
+
+		index = np.array([j])
+		proposals = proposals[index] # B x 4
+		mask_feature = torch.tensor(mask_feature[index]).to(device) # B x 256 x 14 x 14
+
+		batch_sseg_label = torch.zeros((1, 28, 28))
+		batch_prop_boxes = torch.zeros((1, 4))
+
+		x1, y1, x2, y2 = proposals[0]
+		prop_x1 = int(round(x1))
+		prop_y1 = int(round(y1))
+		prop_x2 = int(round(x2))
+		prop_y2 = int(round(y2))
+
+		img_proposal = rgb_img[prop_y1:prop_y2, prop_x1:prop_x2]
+		sseg_label_proposal = sseg_label[prop_y1:prop_y2, prop_x1:prop_x2]
+
+		batch_prop_boxes[0, 0] = prop_x1
+		batch_prop_boxes[0, 1] = prop_y1
+		batch_prop_boxes[0, 2] = prop_x2
+		batch_prop_boxes[0, 3] = prop_y2
+
+		# rescale sseg label to 28x28
+		try:
+			sseg_label_patch = cv2.resize(sseg_label_proposal, (28, 28), interpolation=cv2.INTER_NEAREST) # 28 x 28
+		except:
+			sseg_label_patch = np.zeros((28, 28))
+		sseg_label_patch = sseg_label_patch.astype('int')
+		#print('sseg_label_patch = {}'.format(sseg_label_patch))
+		batch_sseg_label[0] = torch.tensor(sseg_label_patch)
+
+		batch_prop_boxes = batch_prop_boxes.to(device)
+		batch_sseg_feature = roi_align(sseg_feature, [batch_prop_boxes], output_size=(14, 14), spatial_scale=1/8.0, aligned=True)
+
+		if self.rep_style == 'both':
+			patch_feature = torch.cat((mask_feature, batch_sseg_feature), dim=1) # B x 512 x 14 x 14
+		elif self.rep_style == 'ObjDet':
+			patch_feature = mask_feature
+		elif self.rep_style == 'SSeg':
+			patch_feature = batch_sseg_feature
+
+		return patch_feature, batch_sseg_label, img_proposal, sseg_label_proposal
+
+	def get_ood_proposals(self, i, j=0, inlier_props=5):
+		img_path = '{}/{}.png'.format(self.dataset_dir, i)
+		lbl_path = '{}/{}_label.png'.format(self.dataset_dir, i)
+
+		rgb_img = np.array(Image.open(img_path).convert('RGB'))
+		sseg_label = np.array(Image.open(lbl_path), dtype=np.uint8)
+		#print('sseg_label.shape = {}'.format(sseg_label.shape))
+		
+		# read proposals
+		proposals = np.load('{}/{}_proposal.npy'.format(self.proposal_folder, i), allow_pickle=True)
+		
+		# read mask features
+		mask_feature = np.load('{}/{}_proposal_mask_features.npy'.format(self.mask_ft_folder, i), allow_pickle=True)
+		
+		# read sseg features
+		sseg_feature = np.load('{}/{}_deeplab_ft.npy'.format(self.sseg_ft_folder, i), allow_pickle=True) # 256 x 128 x 256
+		#print('sseg_feature.shape = {}'.format(sseg_feature.shape))
+
+		sseg_feature = torch.tensor(sseg_feature).unsqueeze(0).to(device) # 1 x 256 x 128 x 256
+
+		index = np.array([j])
+		proposals = proposals[index] # B x 4
+		mask_feature = torch.tensor(mask_feature[index]).to(device) # B x 256 x 14 x 14
+
+		batch_sseg_label = torch.zeros((1, 28, 28))
+		batch_prop_boxes = torch.zeros((1, 4))
+
+		x1, y1, x2, y2 = proposals[0]
+		prop_x1 = int(round(x1))
+		prop_y1 = int(round(y1))
+		prop_x2 = int(round(x2))
+		prop_y2 = int(round(y2))
+
+		img_proposal = rgb_img[prop_y1:prop_y2, prop_x1:prop_x2]
+		sseg_label_proposal = sseg_label[prop_y1:prop_y2, prop_x1:prop_x2]
+
+		batch_prop_boxes[0, 0] = prop_x1
+		batch_prop_boxes[0, 1] = prop_y1
+		batch_prop_boxes[0, 2] = prop_x2
+		batch_prop_boxes[0, 3] = prop_y2
+
+		proposal_coords = [prop_x1, prop_y1, prop_x2, prop_y2]
+
+		# rescale sseg label to 28x28
+		sseg_label_patch = cv2.resize(sseg_label_proposal, (28, 28), interpolation=cv2.INTER_NEAREST) # 28 x 28
+		sseg_label_patch = sseg_label_patch.astype('int')
+		#print('sseg_label_patch = {}'.format(sseg_label_patch))
+		batch_sseg_label[0] = torch.tensor(sseg_label_patch)
+
+		batch_prop_boxes = batch_prop_boxes.to(device)
+		batch_sseg_feature = roi_align(sseg_feature, [batch_prop_boxes], output_size=(14, 14), spatial_scale=1/8.0, aligned=True)
+
+		if self.rep_style == 'both':
+			patch_feature = torch.cat((mask_feature, batch_sseg_feature), dim=1) # B x 512 x 14 x 14
+		elif self.rep_style == 'ObjDet':
+			patch_feature = mask_feature
+		elif self.rep_style == 'SSeg':
+			patch_feature = batch_sseg_feature
+
+		return patch_feature, batch_sseg_label, img_proposal, sseg_label_proposal, proposal_coords
+
+	def get_num_edgebox_ood_proposal(self, i):
+		proposals = self.edgebox_proposals[i]
+		return proposals.shape[0]
+
+	def get_edgebox_ood_proposal(self, i, j=0):
+		img_path = '{}/{}.png'.format(self.dataset_dir, i)
+		lbl_path = '{}/{}_label.png'.format(self.dataset_dir, i)
+
+		rgb_img = np.array(Image.open(img_path).convert('RGB'))
+		sseg_label = np.array(Image.open(lbl_path), dtype=np.uint8)
+		#print('sseg_label.shape = {}'.format(sseg_label.shape))
+		
+		# read proposals
+		proposals = self.edgebox_proposals[i]
+		
+		# read sseg features
+		sseg_feature = np.load('{}/{}_deeplab_ft.npy'.format(self.sseg_ft_folder, i), allow_pickle=True) # 256 x 128 x 256
+		#print('sseg_feature.shape = {}'.format(sseg_feature.shape))
+
+		sseg_feature = torch.tensor(sseg_feature).unsqueeze(0).to(device) # 1 x 256 x 128 x 256
+
+		index = np.array([j])
+		proposals = proposals[index] # B x 4
+
+		batch_sseg_label = torch.zeros((1, 28, 28))
+		batch_prop_boxes = torch.zeros((1, 4))
+
+		x1, y1, x2, y2 = proposals[0]
+		prop_x1 = int(round(x1))
+		prop_y1 = int(round(y1))
+		prop_x2 = int(round(x2))
+		prop_y2 = int(round(y2))
+
+		img_proposal = rgb_img[prop_y1:prop_y2, prop_x1:prop_x2]
+		sseg_label_proposal = sseg_label[prop_y1:prop_y2, prop_x1:prop_x2]
+
+		batch_prop_boxes[0, 0] = prop_x1
+		batch_prop_boxes[0, 1] = prop_y1
+		batch_prop_boxes[0, 2] = prop_x2
+		batch_prop_boxes[0, 3] = prop_y2
+
+		proposal_coords = [prop_x1, prop_y1, prop_x2, prop_y2]
+
+		# rescale sseg label to 28x28
+		sseg_label_patch = cv2.resize(sseg_label_proposal, (28, 28), interpolation=cv2.INTER_NEAREST) # 28 x 28
+		sseg_label_patch = sseg_label_patch.astype('int')
+		#print('sseg_label_patch = {}'.format(sseg_label_patch))
+		batch_sseg_label[0] = torch.tensor(sseg_label_patch)
+
+		batch_prop_boxes = batch_prop_boxes.to(device)
+		batch_sseg_feature = roi_align(sseg_feature, [batch_prop_boxes], output_size=(14, 14), spatial_scale=1/8.0, aligned=True)
+
+		patch_feature = batch_sseg_feature
 
 		return patch_feature, batch_sseg_label, img_proposal, sseg_label_proposal

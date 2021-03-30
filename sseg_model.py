@@ -113,7 +113,7 @@ class DuqHead(nn.Module):
 		y_pred, y_pred_a = self.rbf(z)
 		y_pred = y_pred.reshape(B, H, W, self.num_classes).permute(0, 3, 1, 2)
 		
-		return y_pred, z, y_pred_a
+		return y_pred#, z, y_pred_a
 
 	def update_embeddings(self, x, y_targets):
 		y_targets = y_targets.reshape(-1, 1).long().squeeze(1)
@@ -141,6 +141,46 @@ class DuqHead(nn.Module):
 		embedding_sum = torch.einsum('ijk,ik->jk', z, y_targets) # 512 x 8
 
 		self.m = self.gamma * self.m + (1 - self.gamma) * embedding_sum
+
+class DuqHead_noconv(nn.Module):
+	def __init__(self, num_classes=8, input_dim=512):
+		super(DuqHead_noconv, self).__init__()
+		self.num_classes = num_classes
+
+		self.deconv = nn.ConvTranspose2d(input_dim, 256, 2, stride=2, padding=0)
+		
+		#==========================================================================================================
+		self.duq_centroid_size = 512
+		self.duq_model_output_size = 256
+		self.gamma = 0.999
+		self.duq_length_scale = 0.1
+
+		self.W = nn.Parameter(torch.zeros(self.duq_centroid_size, self.num_classes, self.duq_model_output_size))
+		nn.init.kaiming_normal_(self.W, nonlinearity='relu')
+		self.register_buffer('N', torch.ones(self.num_classes)*20)
+		self.register_buffer('m', torch.normal(torch.zeros(self.duq_centroid_size, self.num_classes), 0.05))
+		self.m = self.m *self.N
+		self.sigma = self.duq_length_scale
+
+	def rbf(self, z):
+		z = torch.einsum('ij,mnj->imn', z, self.W)
+		embeddings = self.m / self.N.unsqueeze(0)
+		diff = z - embeddings.unsqueeze(0)
+		diff = (diff ** 2).mean(1).div(2 * self.sigma **2).mul(-1).exp()
+		return diff
+
+	def forward(self, x):
+		x = self.deconv(x) # B x 256 x 28 x 28
+
+		B, C, H, W = x.shape
+
+		z = x.permute(0, 2, 3, 1)
+		z = z.reshape(-1, C)
+
+		y_pred = self.rbf(z)
+		y_pred = y_pred.reshape(B, H, W, self.num_classes).permute(0, 3, 1, 2)
+		
+		return y_pred#, z
 
 
 def calc_gradient_penalty(x, y_pred):

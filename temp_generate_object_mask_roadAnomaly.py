@@ -3,8 +3,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 import matplotlib.pyplot as plt
-from sseg_model import DuqHead
-from sseg_model import SSegHead
+from sseg_model import DuqHead, DuqHead_noconv
 from dataloaders.cityscapes_proposals import CityscapesProposalsDataset
 from dataloaders.lostAndFound_proposals import LostAndFoundProposalsDataset
 from dataloaders.fishyscapes_proposals import FishyscapesProposalsDataset
@@ -18,17 +17,16 @@ import cv2
 style = 'duq'
 dataset = 'roadAnomaly' #'lostAndFound', 'cityscapes', 'fishyscapes', 'roadAnomaly'
 rep_style = 'SSeg' #'both', 'ObjDet', 'SSeg' 
-save_option = 'image' #'image', 'npy'
+save_option = 'npy' #'image', 'npy'
 ignore_background_uncertainty = False
 ignore_boundary_uncertainty = False
 
-#for dataset in ['cityscapes', 'lostAndFound', 'roadAnomaly', 'fishyscapes']:
-#	for rep_style in ['both', 'ObjDet', 'SSeg']:
+thresh_mask_obj = 0.3
 
 print('style = {}, rep_style = {},  dataset = {}'.format(style, rep_style, dataset))
 
-base_folder = 'visualization/temp_all_props_bg_other'
-saved_folder = '{}/obj_sseg_{}/{}/{}'.format(base_folder, style, rep_style, dataset)
+base_folder = 'gen_object_mask'
+saved_folder = '{}/obj_sseg_{}/{}/{}_regular_props'.format(base_folder, style, rep_style, dataset)
 trained_model_dir = 'trained_model/all_props/{}/{}'.format(style, rep_style)
 
 # check if folder exists
@@ -61,55 +59,53 @@ else:
 device = torch.device('cuda')
 
 classifier = DuqHead(num_classes, input_dim).to(device)
+#classifier = DuqHead_noconv(num_classes, input_dim).to(device)
 #classifier = SSegHead(num_classes, input_dim).to(device)
 classifier.load_state_dict(torch.load('{}/{}_classifier_0.0.pth'.format(trained_model_dir, style)))
 classifier.eval()
 
 
-with torch.no_grad():
-	for i in range(len(ds_val)):
-		print('i = {}'.format(i))
+img_id_list = list(range(len(ds_val)))
 
-		if dataset == 'cityscapes':
-			num_proposals = 100
-		elif dataset == 'lostAndFound':
-			num_proposals = ds_val.get_num_proposal(i)
-		elif dataset == 'fishyscapes':
-			num_proposals = ds_val.get_num_proposal(i)
-		elif dataset == 'roadAnomaly':
-			num_proposals = 5
-		
+with torch.no_grad():
+	for i in img_id_list:
+		print('i = {}'.format(i))
+		num_proposals = 100
+		all_uncertainty = np.zeros((num_proposals, 28, 28))
+
 		for j in range(num_proposals):
-			patch_feature, batch_sseg_label, img_proposal, sseg_label_proposal = ds_val.get_proposal(i, j)
+
+			patch_feature, batch_sseg_label, img_proposal, sseg_label_proposal = ds_val.get_regular_proposals(i, j)
 
 			patch_feature = patch_feature.to(device)
 			logits = classifier(patch_feature)
 			#logits = logits[0]
 
 			H, W = sseg_label_proposal.shape
-			#'''
-			# compute uncertainty on background classes
-			logits = F.interpolate(logits, size=(H, W), mode='bilinear', align_corners=False)
+			#logits = F.interpolate(logits, size=(H, W), mode='bilinear', align_corners=False)
 
-			logits = logits.cpu().numpy()[0]
-			#logits = logits.cpu().numpy()[0, [0, 1, 3, 4]] # 4 x H x W
+# ================================== estimate mask_obj based on obj classes ==========================
+			logit = logits.cpu().numpy()[0] # 4 x H x W
+			sseg_pred = np.argmax(logit, axis=0)
+
+			logit = logit[[5, 6, 7]]
+			uncertainty_obj = 1 - np.amax(logit, axis=0)
+			mask_obj_from_obj = (uncertainty_obj < 0.1)
 			
+# ================================== estimate mask_obj based on background classes ==========================
+			logits = logits.cpu().numpy()[0, [0, 1, 3, 4]] # 4 x H x W
+			uncertainty = 1.0 - np.amax(logits, axis=0)
+
+			if ignore_boundary_uncertainty:
+				uncertainty[:2, :] = 0 #np.repeat(uncertainty[[5], :], 5, axis=0)
+				uncertainty[-2:, :] = 0 #np.repeat(uncertainty[[-5], :], 5, axis=0)
+				uncertainty[:, :2] = 0 #np.repeat(uncertainty[:, [5]], 5, axis=1)
+				uncertainty[:, -2:] = 0 #np.repeat(uncertainty[:, [-5]], 5, axis=1)
 			
-			sseg_pred = np.argmax(logits, axis=0)
-			#sseg_pred[sseg_pred == 0] = 0 # road
-			#sseg_pred[sseg_pred == 1] = 1 # building
-			#sseg_pred[sseg_pred == 2] = 3 # vegetation
-			#sseg_pred[sseg_pred == 3] = 4 # sky
-			#sseg_pred[uncertainty > 0.3] = 6
+			mask_obj = (uncertainty > thresh_mask_obj)
+			#uncertainty[mask_obj < 1] = 0
 
-			logits = logits[[0, 1, 2, 3, 4, 5, 6, 7]] # 4 x H x W
-			uncertainty = 1.0 - np.amax(logits, axis=0) + 0.2
-
-			uncertainty[sseg_pred == 0] = 0 # road
-			uncertainty[sseg_pred == 1] = 0 # building
-			uncertainty[sseg_pred == 3] = 0 # vegetation
-			uncertainty[sseg_pred == 4] = 0 # sky
-
+			all_uncertainty[j] = uncertainty
 
 			if dataset == 'cityscapes':
 				color_sseg_label_proposal = apply_color_map(sseg_label_proposal)
@@ -119,41 +115,45 @@ with torch.no_grad():
 			#assert 1==2
 
 			if save_option == 'both' or save_option == 'image':
-				fig, ax = plt.subplots(nrows=2, ncols=2, figsize=(18,10))
+				fig, ax = plt.subplots(nrows=3, ncols=2, figsize=(18,15))
 				ax[0][0].imshow(img_proposal)
 				ax[0][0].get_xaxis().set_visible(False)
 				ax[0][0].get_yaxis().set_visible(False)
 				ax[0][0].set_title("rgb proposal")
-				ax[0][1].imshow(color_sseg_label_proposal)
+				ax[0][1].imshow(color_sseg_pred)
 				ax[0][1].get_xaxis().set_visible(False)
 				ax[0][1].get_yaxis().set_visible(False)
-				ax[0][1].set_title("sseg_label_proposal")
-				ax[1][0].imshow(color_sseg_pred)
+				ax[0][1].set_title("color_sseg_pred")
+				ax[1][0].imshow(uncertainty, vmin=0.0, vmax=1.0)
 				ax[1][0].get_xaxis().set_visible(False)
 				ax[1][0].get_yaxis().set_visible(False)
-				ax[1][0].set_title("sseg pred")
-				ax[1][1].imshow(uncertainty, vmin=0.0, vmax=1.0)
+				ax[1][0].set_title("uncertainty from bg")
+				ax[1][1].imshow(mask_obj, vmin=0.0, vmax=1.0)
 				ax[1][1].get_xaxis().set_visible(False)
 				ax[1][1].get_yaxis().set_visible(False)
-				ax[1][1].set_title("uncertainty")
-
-				fig.tight_layout()
-				fig.savefig('{}/img_{}_proposal_{}.jpg'.format(saved_folder, i, j))
+				ax[1][1].set_title("mask_obj from bg")
+				ax[2][0].imshow(uncertainty_obj, vmin=0.0, vmax=1.0)
+				ax[2][0].get_xaxis().set_visible(False)
+				ax[2][0].get_yaxis().set_visible(False)
+				ax[2][0].set_title("uncertainty from obj")
+				ax[2][1].imshow(mask_obj_from_obj, vmin=0.0, vmax=1.0)
+				ax[2][1].get_xaxis().set_visible(False)
+				ax[2][1].get_yaxis().set_visible(False)
+				ax[2][1].set_title("mask_obj_from_obj")
+				plt.show()
+				#fig.tight_layout()
+				#fig.savefig('{}/img_{}_proposal_{}.jpg'.format(saved_folder, i, j))
 				plt.close()
 
-			if save_option == 'both' or save_option == 'npy':
+		if save_option == 'both' or save_option == 'npy':
 
-				# remove uncertainty on the image boundary
-				if ignore_boundary_uncertainty:
-					uncertainty[:5, :] = 0 #np.repeat(uncertainty[[5], :], 5, axis=0)
-					uncertainty[-5:, :] = 0 #np.repeat(uncertainty[[-5], :], 5, axis=0)
-					uncertainty[:, :5] = 0 #np.repeat(uncertainty[:, [5]], 5, axis=1)
-					uncertainty[:, -5:] = 0 #np.repeat(uncertainty[:, [-5]], 5, axis=1)
+			result = {}
+			#result['sseg'] = sseg_pred
+			result['uncertainty_bg'] = all_uncertainty
+			result['mask_obj_from_bg'] = mask_obj
+			#result['uncertainty_obj'] = uncertainty_obj
+			#result['mask_obj_from_obj'] = mask_obj_from_obj
+			np.save('{}/img_{}_regular_prop_mask.npy'.format(saved_folder, i), result)
 
-				result = {}
-				result['sseg'] = sseg_pred
-				result['uncertainty'] = uncertainty
-				np.save('{}/img_{}_proposal_{}.npy'.format(saved_folder, i, j), result)
-
-				#assert 1==2
+		#assert 1==2
 

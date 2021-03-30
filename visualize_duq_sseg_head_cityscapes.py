@@ -4,7 +4,6 @@ import torch
 import torch.nn as nn
 import matplotlib.pyplot as plt
 from sseg_model import DuqHead
-from sseg_model import SSegHead
 from dataloaders.cityscapes_proposals import CityscapesProposalsDataset
 from dataloaders.lostAndFound_proposals import LostAndFoundProposalsDataset
 from dataloaders.fishyscapes_proposals import FishyscapesProposalsDataset
@@ -13,21 +12,17 @@ import torch.nn.functional as F
 from utils import apply_color_map
 from scipy.stats import entropy
 from scipy.special import softmax
-import cv2
 
 style = 'duq'
-dataset = 'roadAnomaly' #'lostAndFound', 'cityscapes', 'fishyscapes', 'roadAnomaly'
+dataset = 'cityscapes' #'lostAndFound', 'cityscapes', 'fishyscapes', 'roadAnomaly'
 rep_style = 'SSeg' #'both', 'ObjDet', 'SSeg' 
 save_option = 'image' #'image', 'npy'
-ignore_background_uncertainty = False
-ignore_boundary_uncertainty = False
+ignore_background_uncertainty = True
 
-#for dataset in ['cityscapes', 'lostAndFound', 'roadAnomaly', 'fishyscapes']:
-#	for rep_style in ['both', 'ObjDet', 'SSeg']:
 
 print('style = {}, rep_style = {},  dataset = {}'.format(style, rep_style, dataset))
 
-base_folder = 'visualization/temp_all_props_bg_other'
+base_folder = 'visualization/all_props_cityscapes'
 saved_folder = '{}/obj_sseg_{}/{}/{}'.format(base_folder, style, rep_style, dataset)
 trained_model_dir = 'trained_model/all_props/{}/{}'.format(style, rep_style)
 
@@ -43,13 +38,13 @@ if dataset == 'cityscapes':
 	dataset_folder = '/home/yimeng/ARGO_datasets/Cityscapes'
 	ds_val = CityscapesProposalsDataset(dataset_folder, 'val', rep_style=rep_style)
 elif dataset == 'lostAndFound':
-	dataset_folder = '/home/yimeng/ARGO_datasets/Lost_and_Found'
+	dataset_folder = '/projects/kosecka/yimeng/Datasets/Lost_and_Found'
 	ds_val = LostAndFoundProposalsDataset(dataset_folder, rep_style=rep_style)
 elif dataset == 'fishyscapes':
-	dataset_folder = '/home/yimeng/ARGO_datasets/Fishyscapes_Static'
+	dataset_folder = '/projects/kosecka/yimeng/Datasets/Fishyscapes_Static'
 	ds_val = FishyscapesProposalsDataset(dataset_folder, rep_style=rep_style)
 elif dataset == 'roadAnomaly':
-	dataset_folder = '/home/yimeng/ARGO_datasets/RoadAnomaly'
+	dataset_folder = '/projects/kosecka/yimeng/Datasets/RoadAnomaly'
 	ds_val = RoadAnomalyProposalsDataset(dataset_folder, rep_style=rep_style)
 num_classes = ds_val.NUM_CLASSES
 
@@ -61,55 +56,48 @@ else:
 device = torch.device('cuda')
 
 classifier = DuqHead(num_classes, input_dim).to(device)
-#classifier = SSegHead(num_classes, input_dim).to(device)
 classifier.load_state_dict(torch.load('{}/{}_classifier_0.0.pth'.format(trained_model_dir, style)))
 classifier.eval()
 
-
 with torch.no_grad():
-	for i in range(len(ds_val)):
-		print('i = {}'.format(i))
+	if dataset == 'cityscapes':
+		num_imgs = 50
+	else:
+		num_imgs = len(ds_val)
 
+	for i in range(num_imgs):
 		if dataset == 'cityscapes':
-			num_proposals = 100
+			num_proposals = 10
 		elif dataset == 'lostAndFound':
 			num_proposals = ds_val.get_num_proposal(i)
 		elif dataset == 'fishyscapes':
 			num_proposals = ds_val.get_num_proposal(i)
 		elif dataset == 'roadAnomaly':
-			num_proposals = 5
+			num_proposals = 20
 		
 		for j in range(num_proposals):
-			patch_feature, batch_sseg_label, img_proposal, sseg_label_proposal = ds_val.get_proposal(i, j)
+			print('i = {}, j = {}'.format(i, j))
+			patch_feature, _, img_proposal, sseg_label_proposal = ds_val.get_proposal(i, j)
 
 			patch_feature = patch_feature.to(device)
 			logits = classifier(patch_feature)
-			#logits = logits[0]
 
 			H, W = sseg_label_proposal.shape
-			#'''
-			# compute uncertainty on background classes
+
 			logits = F.interpolate(logits, size=(H, W), mode='bilinear', align_corners=False)
+			sseg_pred = torch.argmax(logits, dim=1)
 
 			logits = logits.cpu().numpy()[0]
-			#logits = logits.cpu().numpy()[0, [0, 1, 3, 4]] # 4 x H x W
-			
-			
-			sseg_pred = np.argmax(logits, axis=0)
-			#sseg_pred[sseg_pred == 0] = 0 # road
-			#sseg_pred[sseg_pred == 1] = 1 # building
-			#sseg_pred[sseg_pred == 2] = 3 # vegetation
-			#sseg_pred[sseg_pred == 3] = 4 # sky
-			#sseg_pred[uncertainty > 0.3] = 6
+			sseg_pred = sseg_pred.cpu().numpy()[0]
 
-			logits = logits[[0, 1, 2, 3, 4, 5, 6, 7]] # 4 x H x W
-			uncertainty = 1.0 - np.amax(logits, axis=0) + 0.2
+			uncertainty = 1.0 - np.amax(logits, axis=0)
 
-			uncertainty[sseg_pred == 0] = 0 # road
-			uncertainty[sseg_pred == 1] = 0 # building
-			uncertainty[sseg_pred == 3] = 0 # vegetation
-			uncertainty[sseg_pred == 4] = 0 # sky
-
+			if ignore_background_uncertainty:
+				# ignore uncertainty on the background pixels
+				uncertainty[sseg_pred == 0] = 0 # road
+				uncertainty[sseg_pred == 1] = 0 # building
+				uncertainty[sseg_pred == 3] = 0 # vegetation
+				uncertainty[sseg_pred == 4] = 0 # sky
 
 			if dataset == 'cityscapes':
 				color_sseg_label_proposal = apply_color_map(sseg_label_proposal)
@@ -142,18 +130,10 @@ with torch.no_grad():
 				plt.close()
 
 			if save_option == 'both' or save_option == 'npy':
-
-				# remove uncertainty on the image boundary
-				if ignore_boundary_uncertainty:
-					uncertainty[:5, :] = 0 #np.repeat(uncertainty[[5], :], 5, axis=0)
-					uncertainty[-5:, :] = 0 #np.repeat(uncertainty[[-5], :], 5, axis=0)
-					uncertainty[:, :5] = 0 #np.repeat(uncertainty[:, [5]], 5, axis=1)
-					uncertainty[:, -5:] = 0 #np.repeat(uncertainty[:, [-5]], 5, axis=1)
-
 				result = {}
 				result['sseg'] = sseg_pred
 				result['uncertainty'] = uncertainty
 				np.save('{}/img_{}_proposal_{}.npy'.format(saved_folder, i, j), result)
 
-				#assert 1==2
+			#assert 1==2
 

@@ -61,7 +61,7 @@ class DropoutHead(nn.Module):
 		B, C, H, W = x.shape
 		mask = mask.unsqueeze(1).repeat(1, C, 1, 1) # B*H*W -> B*1*H*W -> B*C*H*W
 		block_value = x.min()  # min values of whole tensor [B*C*H*W]
-		x = torch.where(mask, block_value, x)
+		x = torch.where(mask < 1, block_value, x)
 		x = F.max_pool2d(x, [H, W]) # 64 x 256 x 1 x 1
 
 		#print('x.shape = {}'.format(x.shape))
@@ -85,6 +85,8 @@ class DuqHead(nn.Module):
 		self.conv4 = nn.Conv2d(256, 256, 3, padding=1)
 		self.bn4 = nn.BatchNorm2d(256)
 		self.deconv = nn.ConvTranspose2d(256, 256, 2, stride=2, padding=0)
+
+		self.fc = nn.Linear(1024, 256)
 		
 		#==========================================================================================================
 		self.duq_centroid_size = 512
@@ -117,12 +119,13 @@ class DuqHead(nn.Module):
 		B, C, H, W = x.shape
 		mask = mask.unsqueeze(1).repeat(1, C, 1, 1) # B*H*W -> B*1*H*W -> B*C*H*W
 		block_value = x.min()  # min values of whole tensor [B*C*H*W]
-		x = torch.where(mask, block_value, x)
-		x = F.max_pool2d(x, [H, W]) # 64 x 256 x 1 x 1
+		x = torch.where(mask < 1, block_value, x)
+		x = F.max_pool2d(x, [14, 14]) # 64 x 256 x 2 x 2
 
 		#print('x.shape = {}'.format(x.shape))
-		x = x.view(x.size(0),-1) # 64 x 256
+		x = x.view(x.size(0),-1) # 64 x 1024
 		#print('x.shape = {}'.format(x.shape))
+		x = self.fc(x)
 
 		z = x
 
@@ -147,12 +150,13 @@ class DuqHead(nn.Module):
 		B, C, H, W = x.shape
 		mask = mask.unsqueeze(1).repeat(1, C, 1, 1) # B*H*W -> B*1*H*W -> B*C*H*W
 		block_value = x.min()  # min values of whole tensor [B*C*H*W]
-		x = torch.where(mask, block_value, x)
-		x = F.max_pool2d(x, [H, W])
+		x = torch.where(mask < 1, block_value, x)
+		x = F.max_pool2d(x, [14, 14]) # 64 x 256 x 2 x 2
 
 		#print('x.shape = {}'.format(x.shape))
-		x = x.view(x.size(0),-1)
+		x = x.view(x.size(0),-1) # 64 x 1024
 		#print('x.shape = {}'.format(x.shape))
+		x = self.fc(x)
 
 		z = x
 
