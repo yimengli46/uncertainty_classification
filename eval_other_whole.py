@@ -9,7 +9,7 @@ style = 'deeplab' #'gan', 'deeplab'
 dataset = 'roadAnomaly' #'lostAndFound', 'cityscapes', 'fishyscapes', 'roadAnomaly'
 tpr_thresh = 0.95
 
-for style in ['gan', 'deeplab']:
+for style in ['deeplab']:
 	for dataset in ['lostAndFound', 'roadAnomaly', 'fishyscapes']:
 		#for tpr_thresh in [0.5, 0.7]:
 

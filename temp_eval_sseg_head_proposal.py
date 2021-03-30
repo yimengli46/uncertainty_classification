@@ -5,19 +5,19 @@ import matplotlib.pyplot as plt
 from utils import compute_fpr
 
 style = 'duq' # 'duq', 'dropout'
-dataset = 'fishyscapes' #'lostAndFound', 'cityscapes', 'fishyscapes', 'roadAnomaly'
-rep_style = 'SSeg' #'both', 'ObjDet', 'SSeg' 
+dataset = 'roadAnomaly' #'lostAndFound', 'cityscapes', 'fishyscapes', 'roadAnomaly'
+rep_style = 'ObjDet' #'both', 'ObjDet', 'SSeg' 
 add_regular_props = False # add mask-rcnn proposals to lost&found and fishyscapes or not
 
 print('style = {}, dataset = {}, rep_style = {}, add_regular = {}'.format(style, dataset, rep_style, add_regular_props))
 
 #base_folder = '/home/yimeng/work/uncertainty_classification_all_props/visualization/temp_all_props_bg_other'
 #base_folder = '/home/yimeng/ARGO_scratch/uncertainty_classification/visualization/bg_only'
-#base_folder = '/home/yimeng/work/uncertainty_classification_all_props/visualization/all_props_gradientPenalty'
+base_folder = '/home/yimeng/work/uncertainty_classification_all_props/visualization/all_props_gradientPenalty'
 #base_folder = '/home/yimeng/ARGO_scratch/uncertainty_classification/visualization/no_conv'
 #base_folder = '/home/yimeng/work/uncertainty_classification_all_props/visualization/ignore_boundary'
 #base_folder = '/home/yimeng/work/uncertainty_classification_all_props/visualization/more_bg_props'
-base_folder = '/home/yimeng/work/uncertainty_classification_all_props/visualization/all_props_all_classes'
+#base_folder = '/home/yimeng/work/uncertainty_classification_all_props/visualization/all_props_all_classes'
 #base_folder = '/home/yimeng/work/uncertainty_classification_all_props/visualization/adversarial_boundary'
 
 
