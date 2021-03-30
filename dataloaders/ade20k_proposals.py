@@ -23,12 +23,12 @@ class ADE20KProposalsDataset(data.Dataset):
 
 		self.img_list = np.load('{}/{}_img_list.npy'.format(self.dataset_dir, self.mode), allow_pickle=True).tolist()
 
-		self.valid_classes = [1, 4, 6, 8, 9, 11, 15, 16, 19, 20, 23, 24, 25, 28, 29, 38, 40, 48, 51, 66]
+		self.valid_classes = [1, 4, 6, 8, 11, 16, 20, 24, 38, 48, 51, 66]
 		self.void_classes = []
-		for i in range(1, 151): #ADE has 150 semantic categories
+		for i in range(0, 151): #ADE has 150 semantic categories
 			if i not in self.valid_classes:
 				self.void_classes.append(i)
-		self.class_names = ['wall', 'floor', 'ceiling', 'bed', 'window', 'cabinet', 'door', 'table', 'curtain', 'chair', 'painting', 'sofa', 'shelf', 'mirror', 'carpet', 'bathtub', 'cushion', 'sink', 'fridge', 'toilet']
+		self.class_names = ['wall', 'floor', 'ceiling', 'bed', 'cabinet', 'table', 'chair', 'sofa', 'bathtub', 'sink', 'fridge', 'toilet']
 		assert len(self.valid_classes) == len(self.class_names)
 
 		self.ignore_index = 255
@@ -38,8 +38,9 @@ class ADE20KProposalsDataset(data.Dataset):
 		print("Found {} {} images".format(len(self.img_list), self.split))
 
 		# proposal, mask feature and sseg feature folder
-		self.proposal_folder = '/scratch/yli44/detectron2/my_projects/Bayesian_MaskRCNN/generated_proposals_ADE20K/ADE20K_{}'.format(self.mode)
-		self.mask_ft_folder  = '/scratch/yli44/detectron2/my_projects/Bayesian_MaskRCNN/proposal_mask_features_ADE20K/ADE20K_{}'.format(self.mode)
+		self.proposal_folder = '/home/yimeng/ARGO_scratch/detectron2/my_projects/Bayesian_MaskRCNN/generated_proposals_ADE20K/ADE20K_{}'.format(self.mode)
+		self.mask_ft_folder  = '/home/yimeng/ARGO_scratch/detectron2/my_projects/Bayesian_MaskRCNN/proposal_mask_features_ADE20K/ADE20K_{}'.format(self.mode)
+		self.sseg_ft_folder  = '/home/yimeng/ARGO_datasets/ADE20K/Semantic_Segmentation/deeplab_ft//{}'.format(self.mode)
 
 	def __len__(self):
 		return len(self.img_list)
@@ -59,6 +60,10 @@ class ADE20KProposalsDataset(data.Dataset):
 		# read mask features
 		mask_feature = np.load('{}/{}_proposal_mask_features.npy'.format(self.mask_ft_folder, i), allow_pickle=True)
 		#print('mask_feature.shape = {}'.format(mask_feature.shape))
+		#assert 1==2
+		sseg_feature = np.load('{}/{}_deeplab_ft.npy'.format(self.sseg_ft_folder, i), allow_pickle=True) # 256 x 128 x 256
+		#print('sseg_feature.shape = {}'.format(sseg_feature.shape))
+		sseg_feature = torch.tensor(sseg_feature).unsqueeze(0).to(device) # 1 x 256 x 128 x 256
 
 		index = np.random.choice(30, self.batch_size, replace=False)
 		#index = np.array([0,1,2])
@@ -68,9 +73,9 @@ class ADE20KProposalsDataset(data.Dataset):
 		#print('proposals.shape = {}'.format(proposals.shape))
 		#print('mask_feature.shape = {}'.format(mask_feature.shape))
 
-		#batch_sseg_feature = torch.zeros((self.batch_size, 256, 14, 14))
+		batch_sseg_feature = torch.zeros((self.batch_size, 256, 14, 14))
 		batch_sseg_label = torch.zeros((self.batch_size, 28, 28))
-		batch_prop_boxes = torch.zeros((self.batch_size, 4)) 
+		batch_prop_boxes = torch.zeros((self.batch_size, 4)).to(device)
 
 		for j in range(self.batch_size):
 			x1, y1, x2, y2 = proposals[j]
@@ -103,7 +108,7 @@ class ADE20KProposalsDataset(data.Dataset):
 			batch_prop_boxes[j, 2] = prop_x2
 			batch_prop_boxes[j, 3] = prop_y2
 			
-			'''
+			#'''
 			# visualize for test
 			fig, ax = plt.subplots(nrows=1, ncols=2, figsize=(10,5))
 			ax[0].imshow(img_patch)
@@ -115,15 +120,22 @@ class ADE20KProposalsDataset(data.Dataset):
 			ax[1].get_yaxis().set_visible(False)
 			ax[1].set_title("sseg label")
 			plt.show()
-			'''
+			#'''
 
 			# rescale sseg label to 28x28
 			sseg_label_patch = cv2.resize(sseg_label_patch, (28, 28), interpolation=cv2.INTER_NEAREST) # 28 x 28
 			#print('sseg_label_patch.shape = {}'.format(sseg_label_patch.shape))
 			batch_sseg_label[j] = torch.tensor(sseg_label_patch)
 
-		if self.rep_style == 'ObjDet':
-			patch_feature = mask_feature
+		batch_sseg_feature = roi_align(sseg_feature, [batch_prop_boxes], output_size=(14, 14), spatial_scale=1/4.0, aligned=True)
+		batch_obj_feature = mask_feature
+
+		if self.rep_style == 'both':
+			patch_feature = torch.cat((batch_obj_feature, batch_sseg_feature), dim=1) # B x 512 x 14 x 14
+		elif self.rep_style == 'ObjDet':
+			patch_feature = batch_obj_feature
+		elif self.rep_style == 'SSeg':
+			patch_feature = batch_sseg_feature 
 
 		#print('patch_feature.shape = {}'.format(patch_feature.shape))
 
@@ -165,6 +177,9 @@ class ADE20KProposalsDataset(data.Dataset):
 		proposals = np.load('{}/{}_proposal.npy'.format(self.proposal_folder, i), allow_pickle=True)
 		# read mask features
 		mask_feature = np.load('{}/{}_proposal_mask_features.npy'.format(self.mask_ft_folder, i), allow_pickle=True)
+		sseg_feature = np.load('{}/{}_deeplab_ft.npy'.format(self.sseg_ft_folder, i), allow_pickle=True) # 256 x 128 x 256
+		#print('sseg_feature.shape = {}'.format(sseg_feature.shape))
+		sseg_feature = torch.tensor(sseg_feature).unsqueeze(0).to(device) # 1 x 256 x 128 x 256
 
 		index = np.array([j])
 		proposals = proposals[index] # B x 4
@@ -194,14 +209,17 @@ class ADE20KProposalsDataset(data.Dataset):
 		batch_sseg_label[0] = torch.tensor(sseg_label_patch)
 
 		batch_prop_boxes = batch_prop_boxes.to(device)
+		batch_sseg_feature = roi_align(sseg_feature, [batch_prop_boxes], output_size=(14, 14), spatial_scale=1/4.0, aligned=True)
 
 		if self.rep_style == 'ObjDet':
 			patch_feature = mask_feature
+		elif self.rep_style == 'SSeg':
+			patch_feature = batch_sseg_feature 
 
 		return patch_feature, batch_sseg_label, img_proposal, sseg_label_proposal
 
 '''
-cityscapes_train = CityscapesProposalsDataset('/projects/kosecka/yimeng/Datasets/Cityscapes', 'train', batch_size=32, rep_style='both')
+cityscapes_train = ADE20KProposalsDataset('/home/yimeng/ARGO_datasets/ADE20K/Semantic_Segmentation', 'train', batch_size=20, rep_style='SSeg')
 a = cityscapes_train[2097]
 #b = cityscapes_train.get_proposal(0, 2)
 '''
